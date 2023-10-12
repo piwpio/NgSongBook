@@ -12,9 +12,7 @@ export class SongService {
     return this.httpClient
       .get('/assets/_songs_.txt', { responseType: 'text' })
       .pipe(
-        map(text =>
-          text.split('\n').map(songName => this.httpClient.get(`/assets/${songName}`, { responseType: 'text' }))
-        ),
+        map(text => text.split('\n').map(songName => this.httpClient.get(`/assets/${songName}`, { responseType: 'text' }))),
         switchMap(songCalls => forkJoin(songCalls))
       )
       .subscribe(songs => {
