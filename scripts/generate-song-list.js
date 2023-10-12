@@ -7,7 +7,7 @@ const listFileName = '_songs_.txt';
 const allSongsList = [];
 function fromDir(startPath, filter) {
   if (!fs.existsSync(startPath)) {
-    console.log("NO DIRECTORY ", startPath);
+    console.log('NO DIRECTORY ', startPath);
     return;
   }
 
@@ -20,12 +20,12 @@ function fromDir(startPath, filter) {
     if (stat.isDirectory()) {
       fromDir(filePath, filter);
     } else if (fileName.endsWith(filter) && fileName !== listFileName) {
-      allSongsList.push(fileName)
+      allSongsList.push(fileName);
     }
   }
 
   const list = allSongsList.sort().join('\n');
-  fs.writeFile(`${directory}${listFileName}`, list, (err) => {
+  fs.writeFile(`${directory}${listFileName}`, list, err => {
     if (err) {
       console.error(err);
       return;
@@ -33,9 +33,6 @@ function fromDir(startPath, filter) {
 
     console.log('\x1b[32m%s\x1b[0m', `File _songs_.txt created successfully`);
   });
-
 }
-
-
 
 fromDir(directory, '.txt');
