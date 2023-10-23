@@ -1,6 +1,6 @@
-#Tytuł piosenki
-##Wykonawca piosenki
-###info dodatkow np capo
+{title}Tytuł piosenki
+{author}Wykonawca piosenki
+{extra}info dodatkow np capo
 
 to jest linia pierwsza|AaDeD
 to jest linia druga

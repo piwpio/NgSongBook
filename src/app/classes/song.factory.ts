@@ -1,15 +1,12 @@
-import { DEFAULT_SONG } from "../constants/song.constants";
-import { ISongVerse } from "../interfaces/song.interfaces";
+import { cloneDeep } from "lodash";
+import { DEFAULT_SONG, MetaRegExp } from "../constants/song.constants";
+import { ISongMeta, ISongVerse } from "../interfaces/song.interfaces";
 import { Song } from "./song.class";
-
-export type SplitMetaVerse = [meta?: string, verse?: string];
-export type SplitMeta = [title?: string, author?: string, extra?: string];
-export type SplitVerses = [verse?: string];
-export type SplitVerse = [lyrics?: string, chords?: string];
 
 export class SongFactory {
   createSong(rawSong: string): Song {
-    const [ title, author, extra ] = this.prepareMeta(rawSong);
+    const { title, author, extra } = this.prepareMeta(rawSong);
+    // console.log({ title, author, extra });
     const song = new Song()
       .setTitle(title)
       .setAuthor(author)
@@ -22,41 +19,53 @@ export class SongFactory {
     return song;
   }
 
-  private prepareMeta(rawSong: string): SplitMeta {
-    const results: SplitMeta = Array.from(DEFAULT_SONG) as SplitMeta;
+  private prepareMeta(rawSong: string): ISongMeta {
+    const splitMetaVerse = rawSong.split('\n\n') as [meta?: string, verse?: string];
+    const rawMeta = splitMetaVerse[0];
+    const rawVerses = splitMetaVerse[1];
+    const meta = cloneDeep(DEFAULT_SONG);
 
-    const splitMetaVerse = rawSong.split('\n\n') as SplitMetaVerse;
-    if (splitMetaVerse?.[1]) {
-      const splitMeta = splitMetaVerse[1].split('\n') as SplitMeta;
-      for (let i = 0; i < splitMeta.length; i++) {
-        if (splitMeta[i] !== undefined) {
-          results[i] = splitMeta[i];
-        } else {
-          break;
+    if (rawMeta && rawVerses) {
+      for (const [metaKey, regexp] of Object.entries(MetaRegExp)) {
+        const regexpResults = regexp.exec(rawMeta)?.[1]
+        if (regexpResults) {
+          // @ts-ignore
+          meta[metaKey] = regexpResults;
         }
       }
     }
 
-    return results
+
+    return meta;
   }
 
   private *prepareVerse(rawSong: string): Generator<ISongVerse> {
-    const splitMetaVerse = rawSong.split('\n\n') as SplitMetaVerse;
-    let lastChords: SplitVerse[1] = '';
+    const splitMetaVerse = rawSong.split('\n\n') as [meta?: string, verse?: string];
+    const rawMeta = splitMetaVerse[0];
+    let rawVerses = splitMetaVerse[1];
 
-    if (splitMetaVerse?.[1]) {
-      const splitVerses = splitMetaVerse[1].split('\n') as SplitVerses;
+    if (!rawVerses) {
+      rawVerses = rawMeta;
+    }
+
+    let lastChords = '';
+
+    if (rawVerses) {
+      const splitVerses = rawVerses.split('\n');
       for (const verse of splitVerses) {
         if (!verse) {
           continue;
         }
-        const splitVerse = verse.split('|');
+
+        const splitVerse = verse.split('|') as [lyrics: string, chords?: string];
         if (splitVerse?.[0]) {
-          if (verse[1]) {
+          const lyrics = verse[0];
+          const chords = verse[1];
+          if (chords) {
             lastChords = verse[1];
           }
           yield {
-            lyrics: splitVerse[0],
+            lyrics,
             chords: lastChords
           };
         }

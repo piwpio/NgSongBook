@@ -1,20 +1,21 @@
+import { DEFAULT_SONG } from "../constants/song.constants";
 import { ISong, ISongMeta, ISongVerse } from "../interfaces/song.interfaces";
 
 export class Song implements ISong {
-  meta: ISongMeta = {};
+  meta: ISongMeta = DEFAULT_SONG;
   verses: ISongVerse[] = []
 
-  setTitle(title: string | undefined): Song {
+  setTitle(title: string): Song {
     this.meta.title = title
     return this;
   }
 
-  setAuthor(author: string | undefined): Song {
+  setAuthor(author: string): Song {
     this.meta.author = author;
     return this;
   }
 
-  setExtra(extra: string | undefined): Song {
+  setExtra(extra: string): Song {
     this.meta.extra = extra;
     return this;
   }

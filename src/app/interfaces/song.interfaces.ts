@@ -4,9 +4,9 @@ export interface ISong {
 }
 
 export interface ISongMeta {
-  title?: string;
-  author?: string;
-  extra?: string;
+  title: string;
+  author: string;
+  extra: string;
 }
 
 export interface ISongVerse {

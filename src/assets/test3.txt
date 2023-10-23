@@ -1,5 +1,5 @@
-#Tytuł piosenki
-##Wykonawca piosenki
+{title}Tytuł piosenki
+{author}Wykonawca piosenki
 
 to jest linia pierwsza|AaDeD
 to jest linia druga
