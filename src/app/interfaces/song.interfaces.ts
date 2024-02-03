@@ -1,12 +1,13 @@
 export interface ISong {
-  meta: ISongMeta;
+  meta: Partial<ISongMeta>;
   verses: ISongVerse[];
+  valid: boolean;
 }
 
 export interface ISongMeta {
   title: string;
-  author: string;
-  extra: string;
+  author?: string;
+  extra?: string;
 }
 
 export interface ISongVerse {

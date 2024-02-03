@@ -2,11 +2,24 @@
 {author}Wykonawca piosenki
 {extra}info dodatkow np capo
 
-to jest linia pierwsza|AaDeD
-to jest linia druga
-to jest linia trzecia|AaDeD
-to jest linia czwarta|abDeGEGE
-to jest linia piąta
-to jest linia szósta
-to jest linia siódma
-to jest linia ósma
+
+to jest linia 1|AaDeD
+to jest linia 2
+to jest linia 3|AaDeD
+to jest linia 4|abDeGEGE
+
+to jest linia 5
+to jest linia 6
+to jest linia 7
+to jest linia 8
+
+ref. to jest linia 9
+to jest linia 10
+to jest linia 11
+to jest linia 12
+
+to jest linia 13
+to jest linia 14
+to jest linia 15
+to jest linia 16
+

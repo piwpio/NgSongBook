@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 
 const directory = '../src/assets/';
-const listFileName = '_songs_.txt';
+const listFileName = '__songs__.txt';
 
 const allSongsList = [];
 function fromDir(startPath, filter) {
@@ -31,7 +31,7 @@ function fromDir(startPath, filter) {
       return;
     }
 
-    console.log('\x1b[32m%s\x1b[0m', `File _songs_.txt created successfully`);
+    console.log('\x1b[32m%s\x1b[0m', `File ${listFileName} created successfully`);
   });
 }
 

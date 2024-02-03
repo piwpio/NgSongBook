@@ -14,11 +14,11 @@ export class SongService {
   getSongs() {
     const songFactory = new SongFactory();
     return this.httpClient
-      .get('/assets/_songs_.txt', { responseType: 'text' })
+      .get(`/assets/__songs__.txt`, { responseType: 'text' })
       .pipe(
         map(text => text.split('\n').filter(song => song.endsWith('.txt')).map(songName => this.httpClient.get(`/assets/${songName}`, { responseType: 'text' }))),
         switchMap(songCalls => forkJoin(songCalls)),
-        map(songs => songs.map(rawSong => songFactory.createSong(rawSong)))
+        map(songs => songs.map(rawSong => songFactory.createSong(rawSong)).filter(song => song.valid))
       )
       .subscribe(songs => {
         console.log(songs);

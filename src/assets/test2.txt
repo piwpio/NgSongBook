@@ -1,6 +1,7 @@
 {title}Tytuł piosenki
 {extra}info dodatkow np capo
 
+
 to jest linia pierwsza|AaDeD
 to jest linia druga
 to jest linia trzecia|AaDeD
