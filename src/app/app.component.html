@@ -1,6 +1,6 @@
 <header class="topbar">
   <h1>Songbook</h1>
-  <p class="muted">{{ songs.length }} songs &middot; {{ pending.length }} waiting to be printed</p>
+  <p class="muted">{{ songs.length }} songs</p>
 </header>
 
 <section class="panel">
@@ -32,11 +32,6 @@
       split chords (A a D e D)
     </label>
 
-    <label class="check">
-      <input type="checkbox" [(ngModel)]="includeChanged" />
-      include edited songs
-    </label>
-
     <label>
       Songbook title
       <input type="text" [(ngModel)]="bookTitle" />
@@ -45,15 +40,11 @@
 
   <div class="actions">
     <button type="button" class="primary" [disabled]="songs.length === 0" (click)="generateSongbook()">Generate full songbook (PDF)</button>
-    <button type="button" [disabled]="pending.length === 0" (click)="generatePrintSet()">Generate print set ({{ pending.length }})</button>
-    <button type="button" class="ghost" (click)="downloadHistory()">Download print-history.json</button>
-    <button type="button" class="ghost" (click)="resetLocalHistory()">Clear local history</button>
   </div>
 
   <p class="hint">
-    The full songbook has a cover, a clickable table of contents and page numbers. The print set has neither contents nor page numbers
-    &ndash; and holds only the songs that have not been printed yet. It is recorded in this browser; to keep it in the repo, download
-    <code>print-history.json</code> and replace the file in <code>src/assets/</code> (or use <code>npm run pdf:print</code>).
+    Printing is the command line's job: <code>npm run pdf:print</code> builds the next batch for the binder and records it in
+    <code>data/print-history.json</code>, which is committed. The badges below are read from that file.
   </p>
 </section>
 

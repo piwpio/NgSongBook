@@ -45,7 +45,7 @@ Common options:
   --songs a.txt,b.txt         limit to the given files
   --out path.pdf              output file
   --songs-dir dir             songs directory (default songs/, read recursively)
-  --history file.json         print history file (default src/assets/print-history.json)
+  --history file.json         print history file (default data/print-history.json)
 
 'book' only:
   --no-cover                  no cover page
@@ -57,6 +57,7 @@ Common options:
   --no-dedication             no dedication on the cover
 
 'print' only:
+  --no-cover                  skip the title page in the batch
   --all                       generate everything, ignoring the history
   --include-changed           also include songs edited since they were last printed
   --dry-run                   list what would be printed, generate nothing, touch nothing
@@ -177,7 +178,12 @@ async function commandPrint(args: ParsedArgs, ctx: Context): Promise<void> {
 
   const outPath = str(args.flags, 'out') ?? path.join(ctx.outputDir, `do-druku-${timestampSlug()}.pdf`);
 
-  const doc = buildPrintDoc(toPrint, pdfOptionsFrom(args.flags));
+  const doc = buildPrintDoc(toPrint, {
+    ...pdfOptionsFrom(args.flags),
+    cover: bool(args.flags, 'cover'),
+    subtitle: str(args.flags, 'subtitle'),
+    dedication: bool(args.flags, 'dedication') === false ? null : str(args.flags, 'dedication'),
+  });
   await writePdf(doc, outPath);
   reportWarnings(toPrint);
   console.log(`\n  PDF -> ${path.relative(ctx.root, outPath)}  (no page numbers, no contents)`);

@@ -1,21 +1,18 @@
 import { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 import { Song } from '../model/song.model';
 import { buildSongContent, buildStyles } from './song-content';
-import { PAGE_POINTS, PdfOptions, contentWidth, resolvePdfOptions } from './pdf-options';
+import { PdfOptions, contentWidth, resolvePdfOptions } from './pdf-options';
+import { CoverOptions, buildCover } from './cover';
 
-export interface SongbookDocOptions extends Partial<PdfOptions> {
+export interface SongbookDocOptions extends Partial<PdfOptions>, CoverOptions {
   /** Cover page with the songbook title. Default: true. */
   cover?: boolean;
   /** Clickable table of contents with live page numbers. Default: true. */
   toc?: boolean;
   /** Page numbers in the footer. Default: true. */
   pageNumbers?: boolean;
-  /** Shown on the cover, e.g. a generation date. */
-  subtitle?: string;
   /** Heading above the table of contents. Default: 'Spis treści'. */
   tocTitle?: string;
-  /** Dedication pinned to the bottom right of the cover. `null` removes it. */
-  dedication?: string | null;
 }
 
 /**
@@ -151,43 +148,4 @@ function leaderDots(title: string, available: number, measure: (text: string) =>
   const gap = available - measure(`${title} `);
   const count = Math.floor(gap / unit) - 1;
   return count > 0 ? ' .'.repeat(count).trimStart() : '';
-}
-
-export const DEFAULT_DEDICATION = 'Dla Irminy i Astrid, moich najwierniejszych fanek na dobre i złe';
-
-function buildCover(options: PdfOptions, raw: SongbookDocOptions): Content[] {
-  const page = PAGE_POINTS[options.pageSize];
-  const [left, , right, bottom] = options.margins;
-  const titleSize = options.titleFontSize + 14;
-
-  // Pinned to the middle of the sheet rather than pushed down by a margin, so
-  // the title sits optically centred whatever the page size.
-  const titleBlock: Content = {
-    absolutePosition: { x: left, y: page.height / 2 - titleSize * 0.72 },
-    columns: [
-      {
-        width: page.width - left - right,
-        stack: [
-          { text: options.title, style: 'coverTitle' },
-          ...(raw.subtitle ? [{ text: raw.subtitle, style: 'coverSubtitle', margin: [0, 12, 0, 0] }] : []),
-        ],
-      },
-    ],
-  } as unknown as Content;
-
-  // A page needs something in the normal flow or pdfmake drops it entirely.
-  const content: Content[] = [{ text: '', margin: [0, 0, 0, 0] }, titleBlock];
-
-  const dedication = raw.dedication === undefined ? DEFAULT_DEDICATION : raw.dedication;
-  if (dedication) {
-    const textWidth = (page.width - left - right) * 0.75;
-
-    content.push({
-      // Pinned to the bottom right of the cover, the way a footnote sits.
-      absolutePosition: { x: page.width - right - textWidth, y: page.height - bottom - 34 },
-      columns: [{ text: dedication, style: 'coverDedication', width: textWidth }],
-    });
-  }
-
-  return content;
 }

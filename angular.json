@@ -33,6 +33,11 @@
                 "glob": "**/*.txt",
                 "input": "songs",
                 "output": "songs"
+              },
+              {
+                "glob": "**/*.json",
+                "input": "data",
+                "output": "data"
               }
             ],
             "styles": [

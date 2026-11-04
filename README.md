@@ -7,7 +7,7 @@ Dwa tryby generowania:
 |              | Cały śpiewnik                  | Do druku                                                     |
 | ------------ | ------------------------------ | ------------------------------------------------------------ |
 | zawartość    | wszystkie piosenki             | tylko te jeszcze niedrukowane                                |
-| okładka      | tak                            | nie                                                          |
+| okładka      | tak                            | **tak, za każdym razem**                                     |
 | spis treści  | tak, klikalny (linki do stron) | nie                                                          |
 | numery stron | tak, przeliczane od nowa       | **nie** (kartki trafiają do segregatora w różnej kolejności) |
 | komenda      | `npm run pdf:book`             | `npm run pdf:print`                                          |
@@ -173,13 +173,18 @@ Tylko `book`: `--no-cover`, `--no-toc`, `--no-page-numbers`,
 `--toc-title "Spis treści"`, `--subtitle "..."` (linia pod tytułem na okładce),
 `--dedication "..."` / `--no-dedication`.
 
-Tylko `print`: `--all` (ignoruj historię), `--include-changed` (dołącz zmienione),
+Tylko `print`: `--no-cover` (bez strony tytułowej), `--all` (ignoruj historię),
+`--include-changed` (dołącz zmienione),
 `--dry-run` (pokaż, nie generuj), `--no-mark` (nie zapisuj do historii),
 `--prune` (usuń z historii nieistniejące piosenki).
 
 ### Historia wydruków
 
-`src/assets/print-history.json` — komitowany plik z zapisem, co i kiedy poszło do druku.
+Zestaw do druku zaczyna się stroną tytułową i jest ona drukowana **zawsze**, choćby
+partia liczyła jedną piosenkę — dzięki temu zniszczoną okładkę w segregatorze wymieniasz
+na świeżą bez generowania całego śpiewnika. `--no-cover` ją pomija.
+
+`data/print-history.json` — komitowany plik z zapisem, co i kiedy poszło do druku.
 Dla każdej piosenki trzyma hash treści, więc po edycji tekstu `npm run pdf:history`
 pokaże ją jako `ZMIENIONA`, a `npm run pdf:print -- --include-changed` wydrukuje ponownie.
 
@@ -223,10 +228,9 @@ Przeglądarka nie potrafi wylistować katalogu po HTTP, więc aplikacja czyta in
 `prestart` i `prebuild` (albo ręcznie: `npm run songs:index`), leży w `.gitignore`
 i nie dotykasz go. CLI z niego nie korzysta — czyta katalog wprost.
 
-Przeglądarka nie zapisze pliku w repo, więc historia działa warstwowo:
-komitowany `assets/print-history.json` + to, co wygenerowano w tej przeglądarce
-(localStorage). Przycisk **Pobierz print-history.json** eksportuje scaloną historię —
-wystarczy podmienić nią plik w `src/assets/`.
+Aplikacja **czyta** historię wydruków z `data/print-history.json`, ale nigdy jej nie
+zapisuje — drukowanie to zadanie CLI. Wcześniej trzymała własną kopię w localStorage
+przeglądarki, co rozjeżdżało się z plikiem w repo i zależało od maszyny.
 
 ---
 
@@ -241,7 +245,8 @@ src/songbook/            rdzeń - bez Angulara i bez Node'a
 scripts/cli/             CLI (tsc -> dist/cli, uruchamiane przez npm run pdf:*)
 src/app/                 aplikacja Angular
 songs/                   Twoje piosenki .txt (także w podkatalogach)
-src/assets/              print-history.json i wygenerowany songs-index.json
+data/                    print-history.json — historia wydruków (w repo)
+src/assets/              wygenerowany songs-index.json (poza repo)
 test-songs/              pliki testowe formatu, osobno od prawdziwych piosenek
 output/                  wygenerowane PDF-y (gitignore)
 ```

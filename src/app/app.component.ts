@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
-import { ChordLayout, PageSize, PrintHistory, PrintStatus, Song, emptyHistory, selectForPrint, statusOf } from '../songbook';
+import { ChordLayout, PageSize, PrintHistory, PrintStatus, Song, emptyHistory, statusOf } from '../songbook';
 import { PdfService } from './services/pdf.service';
 import { PrintHistoryService } from './services/print-history.service';
 import { SongService } from './services/song.service';
@@ -33,7 +33,6 @@ export class AppComponent implements OnInit {
   chordLayout: ChordLayout = 'right';
   boldLyrics = false;
   splitChords = true;
-  includeChanged = false;
   bookTitle = 'Śpiewnik Złotego';
 
   readonly statusLabel: Record<PrintStatus, string> = {
@@ -43,7 +42,7 @@ export class AppComponent implements OnInit {
   };
 
   ngOnInit(): void {
-    this.printHistory.loadBaseline().subscribe(history => {
+    this.printHistory.load().subscribe(history => {
       this.history = history;
       this.refreshRows();
     });
@@ -62,33 +61,8 @@ export class AppComponent implements OnInit {
     });
   }
 
-  get pending(): Song[] {
-    return selectForPrint(this.songs, this.history, { includeChanged: this.includeChanged }).toPrint;
-  }
-
   async generateSongbook(): Promise<void> {
     await this.pdf.openSongbook(this.songs, { ...this.pdfOptions(), title: this.bookTitle });
-  }
-
-  async generatePrintSet(): Promise<void> {
-    const toPrint = this.pending;
-    if (toPrint.length === 0) {
-      return;
-    }
-    // History is only updated once the PDF really exists.
-    await this.pdf.openPrintSet(toPrint, this.pdfOptions());
-    this.history = this.printHistory.markPrinted(toPrint);
-    this.refreshRows();
-  }
-
-  downloadHistory(): void {
-    this.printHistory.download();
-  }
-
-  resetLocalHistory(): void {
-    this.printHistory.resetLocal();
-    this.history = this.printHistory.current();
-    this.refreshRows();
   }
 
   trackBySong(_index: number, row: SongRow): string {

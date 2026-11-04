@@ -5,8 +5,12 @@ import { ChordNotation } from '../../src/songbook/parser/chord-tokenizer';
 
 /** Where the songbook keeps the real songs, relative to the project root. */
 export const SONGS_DIR = 'songs';
-/** Committed print history. It lives under src/assets so the app can read it too. */
-export const HISTORY_FILE = path.join('src', 'assets', 'print-history.json');
+/**
+ * The print history: the one piece of state the songbook keeps. It is committed
+ * and lives beside the songs, not inside the Angular app, so a fresh clone on
+ * any machine knows exactly what has already been printed.
+ */
+export const HISTORY_FILE = path.join('data', 'print-history.json');
 
 export function findProjectRoot(startDir: string): string {
   let dir = startDir;
