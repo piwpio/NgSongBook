@@ -95,6 +95,13 @@ first line of the cell only and a wrapped placeholder leaves an orphan `00`; and
 the dot leader is _text_, not a drawn rule, because pdfmake wraps each word in its
 own link annotation and a graphical leader left the middle of the row unclickable.
 
+**An unreadable history stops the run.** `parseHistory` throws on a file that is
+present but corrupt, or written by a newer `HISTORY_VERSION`. Treating it as empty
+would make every song look unprinted and the next batch would overwrite the only
+record of what is already in the binder. An absent or empty file is still a normal
+start. `version` exists for exactly this refusal - additive changes are handled by
+defaulting a missing field, not by the version.
+
 **Print batches are numbered, not dated** - print1.pdf, print2.pdf. The number in
 the file name IS the number in data/print-history.json: `batches` counts the runs,
 each entry carries the `batch` it went out in. The counter lives in the committed

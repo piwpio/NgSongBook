@@ -194,6 +194,11 @@ Licznik żyje w historii, a nie jest zgadywany z plików w `output/` — ten kat
 odtwarzalny i możesz go skasować, kiedy chcesz. Wydruk zrobiony z `--no-mark` nie zapisuje
 się w historii, więc nie zajmuje numeru i dostaje nazwę `printN_preview.pdf`.
 
+Jeśli plik historii jest **uszkodzony** albo zapisany przez nowszą wersję śpiewnika,
+CLI przerywa z błędem i niczego nie nadpisuje. Potraktowanie go jako pustego oznaczałoby,
+że wszystkie piosenki wyglądają na niedrukowane, a następny wydruk skasowałby jedyny
+zapis tego, co już masz w segregatorze. Brak pliku to co innego — to normalny start.
+
 `data/print-history.json` — komitowany plik z zapisem, co i kiedy poszło do druku.
 Dla każdej piosenki trzyma hash treści, więc po edycji tekstu `npm run pdf:history`
 pokaże ją jako `ZMIENIONA`, a `npm run pdf:print -- --include-changed` wydrukuje ponownie.

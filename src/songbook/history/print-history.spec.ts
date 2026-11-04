@@ -1,5 +1,13 @@
 import { Song } from '../model/song.model';
-import { emptyHistory, markPrinted, nextBatchNumber, parseHistory, selectForPrint, serialiseHistory } from './print-history';
+import {
+  HISTORY_VERSION,
+  emptyHistory,
+  markPrinted,
+  nextBatchNumber,
+  parseHistory,
+  selectForPrint,
+  serialiseHistory,
+} from './print-history';
 
 function songOf(file: string, raw = 'tekst'): Song {
   return {
@@ -55,5 +63,30 @@ describe('print history batches', () => {
 
     expect(selectForPrint([after], history).toPrint).toEqual([]);
     expect(selectForPrint([after], history, { includeChanged: true }).toPrint.length).toBe(1);
+  });
+
+  it('reads an absent or empty file as nothing printed yet', () => {
+    expect(parseHistory(null).entries).toEqual({});
+    expect(parseHistory('').entries).toEqual({});
+    expect(parseHistory('   ').entries).toEqual({});
+  });
+});
+
+describe('print history refuses to be mistaken for empty', () => {
+  it('throws on a file that is not valid JSON', () => {
+    expect(() => parseHistory('{ zepsute')).toThrow(/not valid JSON/);
+  });
+
+  it('throws on JSON that is not a history', () => {
+    expect(() => parseHistory('{"version":1}')).toThrow(/no entries/);
+  });
+
+  it('throws on a file written by a newer build', () => {
+    const future = JSON.stringify({ version: HISTORY_VERSION + 1, batches: 3, entries: {} });
+    expect(() => parseHistory(future)).toThrow(/understands/);
+  });
+
+  it('accepts a file without a version as the current one', () => {
+    expect(parseHistory('{"entries":{}}').version).toBe(HISTORY_VERSION);
   });
 });

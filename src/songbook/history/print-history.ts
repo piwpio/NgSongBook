@@ -13,8 +13,16 @@ export interface PrintHistoryEntry {
   batch: number;
 }
 
+/**
+ * Schema version of the history file. Additive changes do not need it - a
+ * missing field is simply defaulted - but a breaking one would, and an older
+ * build must refuse a file it cannot read rather than mistake it for an empty
+ * one and overwrite it.
+ */
+export const HISTORY_VERSION = 1;
+
 export interface PrintHistory {
-  version: 1;
+  version: number;
   /**
    * How many batches have been printed. The counter lives here, in the
    * committed history, rather than being guessed from the files in output/ -
@@ -32,7 +40,7 @@ export interface PrintSelection {
 }
 
 export function emptyHistory(): PrintHistory {
-  return { version: 1, batches: 0, entries: {} };
+  return { version: HISTORY_VERSION, batches: 0, entries: {} };
 }
 
 /** The number the next batch will carry, printed or not. */
@@ -115,7 +123,7 @@ export function markPrinted(history: PrintHistory, songs: Song[], now: Date = ne
     };
   }
 
-  return { version: 1, batches: batch, entries };
+  return { version: HISTORY_VERSION, batches: batch, entries };
 }
 
 /** Drops entries for songs that no longer exist. */
@@ -127,22 +135,41 @@ export function pruneHistory(history: PrintHistory, songs: Song[]): PrintHistory
       entries[key] = entry;
     }
   }
-  return { version: 1, batches: history.batches ?? 0, entries };
+  return { version: HISTORY_VERSION, batches: history.batches ?? 0, entries };
 }
 
+/**
+ * Reads the history file.
+ *
+ * An absent or empty file means "nothing printed yet" - that is a normal start.
+ * A file that is present but unreadable THROWS, and deliberately so: treating
+ * it as empty would make every song look unprinted, and the next batch would
+ * overwrite the only record of what is already in the binder.
+ */
 export function parseHistory(json: string | null | undefined): PrintHistory {
-  if (!json) {
+  if (!json || json.trim() === '') {
     return emptyHistory();
   }
+
+  let parsed: Partial<PrintHistory>;
   try {
-    const parsed = JSON.parse(json) as Partial<PrintHistory>;
-    if (!parsed || typeof parsed !== 'object' || !parsed.entries) {
-      return emptyHistory();
-    }
-    return { version: 1, batches: parsed.batches ?? 0, entries: parsed.entries };
+    parsed = JSON.parse(json) as Partial<PrintHistory>;
   } catch {
-    return emptyHistory();
+    throw new Error('The print history is not valid JSON - refusing to treat it as empty.');
   }
+
+  if (!parsed || typeof parsed !== 'object' || typeof parsed.entries !== 'object' || parsed.entries === null) {
+    throw new Error('The print history has no entries - refusing to treat it as empty.');
+  }
+
+  const version = parsed.version ?? HISTORY_VERSION;
+  if (version > HISTORY_VERSION) {
+    throw new Error(
+      `The print history is version ${version}, this build understands ${HISTORY_VERSION}. Update the songbook before printing.`
+    );
+  }
+
+  return { version: HISTORY_VERSION, batches: parsed.batches ?? 0, entries: parsed.entries };
 }
 
 export function serialiseHistory(history: PrintHistory): string {
@@ -151,5 +178,5 @@ export function serialiseHistory(history: PrintHistory): string {
   for (const key of sortedKeys) {
     entries[key] = history.entries[key];
   }
-  return `${JSON.stringify({ version: 1, batches: history.batches ?? 0, entries }, null, 2)}\n`;
+  return `${JSON.stringify({ version: HISTORY_VERSION, batches: history.batches ?? 0, entries }, null, 2)}\n`;
 }
