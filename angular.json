@@ -59,10 +59,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "songbook:build:production"
+              "buildTarget": "songbook:build:production"
             },
             "development": {
-              "browserTarget": "songbook:build:development"
+              "buildTarget": "songbook:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -70,7 +70,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "songbook:build"
+            "buildTarget": "songbook:build"
           }
         },
         "test": {
