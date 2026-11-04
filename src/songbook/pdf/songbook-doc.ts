@@ -1,7 +1,7 @@
 import { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 import { Song } from '../model/song.model';
 import { buildSongContent, buildStyles } from './song-content';
-import { PAGE_POINTS, PdfOptions, resolvePdfOptions } from './pdf-options';
+import { PAGE_POINTS, PdfOptions, contentWidth, resolvePdfOptions } from './pdf-options';
 
 export interface SongbookDocOptions extends Partial<PdfOptions> {
   /** Cover page with the songbook title. Default: true. */
@@ -104,23 +104,24 @@ function buildToc(entries: TocEntry[], options: PdfOptions): Content {
   // second line. The column is sized for the widest page number this book can
   // plausibly reach, and noWrap keeps anything longer on one line anyway.
   const digits = Math.max(2, String(entries.length * 3 + 2).length);
-  const sample = '0'.repeat(digits);
-  const numberWidth = options.measureText
-    ? options.measureText(sample, options.lyricsFontSize, false)
-    : options.lyricsFontSize * 0.62 * digits;
+  const size = options.lyricsFontSize;
+  const measure = (text: string) => (options.measureText ? options.measureText(text, size, false) : text.length * size * 0.5);
+
+  const numberWidth = measure('0'.repeat(digits));
+  const available = contentWidth(options) - numberWidth;
 
   return {
     stack: entries.map(entry => ({
       columns: [
         {
-          // 'auto' is resolved per row, so the leader starts where THIS title
-          // ends - not where the longest title in the list ends.
-          text: entry.title,
+          // Title and leader are ONE text node, so the link annotation covers
+          // the whole run instead of just the words - the dots are clickable too.
+          text: `${entry.title} ${leaderDots(entry.title, available, measure)}`,
           style: 'tocEntry',
-          width: 'auto',
+          width: '*',
+          noWrap: true,
           linkToDestination: entry.destination,
         },
-        dotLeader(options),
         {
           text: '00000',
           style: 'tocNumber',
@@ -137,26 +138,19 @@ function buildToc(entries: TocEntry[], options: PdfOptions): Content {
 }
 
 /**
- * The run of dots between a title and its page number. A one cell table whose
- * only visible edge is a dashed bottom border - it stretches across whatever
- * space is left, which a fixed string of dots could never do.
+ * The run of dots between a title and its page number, as real text rather
+ * than a drawn rule - that is what makes the gap part of the link. The count
+ * is measured in the document font, so the dots stop just short of the number
+ * however long the title is.
  */
-function dotLeader(options: PdfOptions): Content {
-  return {
-    width: '*',
-    table: { widths: ['*'], heights: [0], body: [[{ text: '' }]] },
-    layout: {
-      hLineWidth: (index: number, node: { table: { body: unknown[] } }) => (index === node.table.body.length ? 0.8 : 0),
-      vLineWidth: () => 0,
-      hLineStyle: () => ({ dash: { length: 0.8, space: 2.6 } }),
-      hLineColor: () => '#666666',
-      paddingLeft: () => 4,
-      paddingRight: () => 3,
-      paddingTop: () => 0,
-      paddingBottom: () => 0,
-    },
-    margin: [0, options.lyricsFontSize * 0.92, 0, 0],
-  } as unknown as Content;
+function leaderDots(title: string, available: number, measure: (text: string) => number): string {
+  const unit = measure(' .');
+  if (unit <= 0) {
+    return '';
+  }
+  const gap = available - measure(`${title} `);
+  const count = Math.floor(gap / unit) - 1;
+  return count > 0 ? ' .'.repeat(count).trimStart() : '';
 }
 
 export const DEFAULT_DEDICATION = 'Dla Irminy i Astrid, moich najwierniejszych fanek na dobre i złe';
