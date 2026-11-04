@@ -186,7 +186,7 @@ function buildCover(options: PdfOptions, raw: SongbookDocOptions): Content[] {
 
   const dedication = raw.dedication === undefined ? DEFAULT_DEDICATION : raw.dedication;
   if (dedication) {
-    const textWidth = (page.width - left - right) * 0.6;
+    const textWidth = (page.width - left - right) * 0.75;
 
     content.push({
       // Pinned to the bottom right of the cover, the way a footnote sits.

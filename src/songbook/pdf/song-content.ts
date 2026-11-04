@@ -226,7 +226,7 @@ export function buildStyles(options: PdfOptions): Record<string, Record<string, 
     coverTitle: { fontSize: options.titleFontSize + 14, bold: true, alignment: 'center' },
     coverSubtitle: { fontSize: options.lyricsFontSize + 1, color: '#555555', alignment: 'center' },
     coverDedication: {
-      fontSize: options.lyricsFontSize - 1.5,
+      fontSize: options.lyricsFontSize + 0.5,
       italics: true,
       color: '#333333',
       alignment: 'right',
