@@ -56,7 +56,7 @@ function lyricsColumnWidth(song: Song, options: PdfOptions): number {
   for (const block of song.blocks) {
     const indent = block.kind === 'chorus' ? options.chorusIndent : 0;
     for (const line of block.lines) {
-      if (!line.lyrics) {
+      if (!line.lyrics || line.chordsOnly) {
         continue;
       }
       const width = indent + options.measureText(line.lyrics, options.lyricsFontSize, options.boldLyrics);
@@ -148,6 +148,12 @@ function buildLine(line: SongLine, options: PdfOptions, lyricsWidth: number, ind
   const chordText = renderChords(line, options);
   const margin: [number, number, number, number] = [indent, 0, 0, 0];
 
+  // A `{chords}` passage has no lyrics to sit beside, so it goes where the
+  // words would be rather than out in the chord column.
+  if (line.chordsOnly) {
+    return chordText ? [{ text: chordText, style: SONG_STYLES.chords, margin }] : [];
+  }
+
   if (options.chordLayout === 'none' || !chordText) {
     return [{ text: line.lyrics, style: SONG_STYLES.lyrics, margin }];
   }
@@ -180,10 +186,14 @@ function buildLine(line: SongLine, options: PdfOptions, lyricsWidth: number, ind
 }
 
 function renderChords(line: SongLine, options: PdfOptions): string {
-  if (!line.rawChords) {
+  return renderChordString(line.chords, line.rawChords, options);
+}
+
+function renderChordString(chords: string[], raw: string, options: PdfOptions): string {
+  if (!raw) {
     return '';
   }
-  return options.splitChords ? formatChords(line.chords) : line.rawChords;
+  return options.splitChords ? formatChords(chords) : raw;
 }
 
 export function buildStyles(options: PdfOptions): Record<string, Record<string, unknown>> {

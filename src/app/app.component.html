@@ -83,8 +83,12 @@
       <div class="block" [class.chorus]="block.kind === 'chorus'">
         @for (line of block.lines; track $index) {
         <div class="line">
+          @if (line.chordsOnly) {
+          <span class="chords standalone">{{ splitChords ? line.chords.join('  ') : line.rawChords }}</span>
+          } @else {
           <span class="chords">{{ splitChords ? line.chords.join('  ') : line.rawChords }}</span>
           <span class="lyrics">{{ line.lyrics }}</span>
+          }
         </div>
         }
       </div>

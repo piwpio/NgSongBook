@@ -1,38 +1,33 @@
 const path = require('path');
 const fs = require('fs');
 
-const directory = '../src/assets/';
-const listFileName = '__songs__.txt';
+const LIST_FILE_NAME = '__songs__.txt';
+const DEFAULT_DIRECTORY = path.join(__dirname, '..', 'src', 'assets');
 
-const allSongsList = [];
-function fromDir(startPath, filter) {
+/** Collects every .txt in the directory, sorted the way Polish sorts. */
+function collectSongs(startPath) {
   if (!fs.existsSync(startPath)) {
-    console.log('NO DIRECTORY ', startPath);
-    return;
+    console.error(`No directory: ${startPath}`);
+    process.exit(1);
   }
 
-  const files = fs.readdirSync(startPath);
-  for (let i = 0; i < files.length; i++) {
-    const fileName = files[i];
+  const songs = [];
+  for (const fileName of fs.readdirSync(startPath)) {
     const filePath = path.join(startPath, fileName);
-    const stat = fs.lstatSync(filePath);
-
-    if (stat.isDirectory()) {
-      fromDir(filePath, filter);
-    } else if (fileName.endsWith(filter) && fileName !== listFileName) {
-      allSongsList.push(fileName);
+    if (fs.lstatSync(filePath).isDirectory()) {
+      continue;
+    }
+    if (fileName.endsWith('.txt') && fileName !== LIST_FILE_NAME) {
+      songs.push(fileName);
     }
   }
-
-  const list = allSongsList.sort().join('\n');
-  fs.writeFile(`${directory}${listFileName}`, list, err => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-
-    console.log('\x1b[32m%s\x1b[0m', `File ${listFileName} created successfully`);
-  });
+  return songs.sort((a, b) => a.localeCompare(b, 'pl'));
 }
 
-fromDir(directory, '.txt');
+// `node generate-song-list [directory]` - defaults to src/assets.
+const directory = path.resolve(process.argv[2] ? process.argv[2] : DEFAULT_DIRECTORY);
+const songs = collectSongs(directory);
+const listPath = path.join(directory, LIST_FILE_NAME);
+
+fs.writeFileSync(listPath, songs.length > 0 ? `${songs.join('\n')}\n` : '', 'utf8');
+console.log('\x1b[32m%s\x1b[0m', `${LIST_FILE_NAME} written with ${songs.length} song(s): ${listPath}`);

@@ -21,6 +21,12 @@ export interface SongLine {
   chords: string[];
   /** true when this very line carried its own `|chords`, false when inherited. */
   chordsExplicit: boolean;
+  /**
+   * A `{chords}` line: an instrumental passage - an intro, a bridge, an
+   * interlude - with no lyrics. It is printed in the lyrics column, because
+   * there is nothing for it to sit beside.
+   */
+  chordsOnly?: boolean;
 }
 
 export interface SongBlock {

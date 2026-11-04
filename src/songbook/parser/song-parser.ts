@@ -10,10 +10,15 @@ export const SONG_FORMAT = {
   chorusMarker: /^\{ref}\s*/i,
   /** A line holding nothing but `{ref}` - print the chorus again here. */
   chorusRepeat: /^\{ref}$/i,
+  /** `{chords}` followed by chords - an instrumental line with no lyrics. */
+  chordsLine: /^\{chords}\s*/i,
   /** Pre-`{ref}` spellings, still accepted as a definition but warned about. */
   legacyChorusMarker: /^(\[ref]|ref|refren|refr|chorus)(\.|:|\s|$)\s*/i,
-  /** Meta key that is NOT meta - it marks a chorus and belongs to the lyrics. */
-  chorusMetaKey: 'ref',
+  /**
+   * Keys that look like meta but are not: they open the body of the song, so
+   * the meta scan has to stop when it meets one.
+   */
+  bodyMarkerKeys: ['ref', 'chords'] as const,
   knownMetaKeys: ['title', 'author', 'extra'] as const,
 } as const;
 
@@ -96,8 +101,8 @@ function readMeta(lines: string[], warnings: string[]): { meta: Record<string, s
       break;
     }
     const key = match[1].toLowerCase();
-    if (key === SONG_FORMAT.chorusMetaKey) {
-      // `{ref}` looks like a meta line but it opens the chorus - lyrics start here.
+    if ((SONG_FORMAT.bodyMarkerKeys as readonly string[]).includes(key)) {
+      // `{ref}` / `{chords}` look like meta lines but they open the body.
       break;
     }
     const value = match[2].trim();
@@ -144,6 +149,30 @@ function parseBlocks(lines: string[], notation: ChordNotation, warnings: string[
       } else {
         warnings.push('{ref} used before the chorus was written out - skipped.');
       }
+      continue;
+    }
+
+    // `{chords}` is a passage with no words - an intro, a bridge, an interlude.
+    // It does NOT touch the running chords: whatever follows still inherits the
+    // chords of the last line that had lyrics.
+    const chordsMatch = SONG_FORMAT.chordsLine.exec(rawLine.trim());
+    if (chordsMatch) {
+      const rest = rawLine.trim().slice(chordsMatch[0].length).trim();
+      const chordText = rest.includes(SONG_FORMAT.chordSeparator) ? rest.slice(rest.indexOf(SONG_FORMAT.chordSeparator) + 1).trim() : rest;
+
+      if (!chordText) {
+        warnings.push('{chords} with no chords after it - skipped.');
+        continue;
+      }
+
+      current ??= { kind: 'verse', lines: [] };
+      current.lines.push({
+        lyrics: '',
+        rawChords: chordText,
+        chords: tokenizeChords(chordText, notation),
+        chordsExplicit: true,
+        chordsOnly: true,
+      });
       continue;
     }
 

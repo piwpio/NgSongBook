@@ -1,0 +1,20 @@
+{title}Piosenka z intrem i bridgem
+{author}Wykonawca Szósty
+{extra}capo 2
+
+
+{chords}eCGD
+
+pierwsza linia po intrze|eCGD
+druga linia
+trzecia linia|aFCG
+
+{ref}refren tej piosenki|CGaF
+druga linia refrenu
+
+{chords}aFCGaFCG
+
+czwarta linia po bridgu
+piąta linia
+
+{ref}

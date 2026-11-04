@@ -125,6 +125,35 @@ describe('parseSong', () => {
     expect(parsed.errors).toEqual(['The song has no lyrics.']);
   });
 
+  it('reads a {chords} line as an instrumental passage', () => {
+    const parsed = parseSong('{title}T\n{author}A\n\n{chords}eCGD\n\nlinia|C', 'x.txt');
+    expect(parsed.valid).toBe(true);
+    const passage = parsed.blocks[0].lines[0];
+    expect(passage.chordsOnly).toBe(true);
+    expect(passage.lyrics).toEqual('');
+    expect(passage.chords).toEqual(['e', 'C', 'G', 'D']);
+  });
+
+  it('a {chords} line does not change the chords the lyrics inherit', () => {
+    const parsed = parseSong('{title}T\n{author}A\n\nlinia 1|C\n{chords}aFCG\nlinia 2', 'x.txt');
+    const [first, passage, second] = parsed.blocks[0].lines;
+    expect(first.rawChords).toEqual('C');
+    expect(passage.chordsOnly).toBe(true);
+    expect(second.rawChords).toEqual('C');
+    expect(second.chordsOnly).toBeFalsy();
+  });
+
+  it('accepts {chords} as the very first line, after the meta block', () => {
+    const parsed = parseSong('{title}T\n{author}A\n{chords}eCGD\n\nlinia', 'x.txt');
+    expect(parsed.meta).toEqual({ title: 'T', author: 'A' });
+    expect(parsed.blocks[0].lines[0].chordsOnly).toBe(true);
+  });
+
+  it('warns about a {chords} line with nothing after it', () => {
+    const parsed = parseSong('{title}T\n{author}A\n\n{chords}\n\nlinia', 'x.txt');
+    expect(parsed.warnings.some(w => w.includes('{chords}'))).toBe(true);
+  });
+
   it('accepts a song without {extra} - only title and author are required', () => {
     const parsed = parseSong('{title}T\n{author}A\n\nlinia|C', 'x.txt');
     expect(parsed.valid).toBe(true);

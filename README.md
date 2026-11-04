@@ -20,12 +20,18 @@ przeglądarce i CLI dają identyczny PDF.
 
 ## Format pliku piosenki
 
-Piosenki to pliki `.txt` w `src/assets/`. Przykład:
+Prawdziwe piosenki trzymasz w `src/assets/`. Pliki do testowania formatu leżą
+osobno, w `test-songs/`, żeby nie mieszały się z Twoim śpiewnikiem — generujesz
+z nich przez `npm run pdf:test`.
+
+Piosenka to plik `.txt`. Przykład:
 
 ```
 {title}Tytuł piosenki
 {author}Wykonawca piosenki
 {extra}capo 2
+
+{chords}eCGD
 
 to jest linia 1|AaDeD
 to jest linia 2
@@ -44,10 +50,27 @@ to jest linia 10
 {ref}
 ```
 
-**Nagłówek** — linie `{klucz}wartość` na początku pliku. `{ref}` nie jest kluczem
-nagłówka — jeśli piosenka zaczyna się od refrenu, parser poprawnie potraktuje go jako tekst. Wszystkie są opcjonalne; bez
-`{title}` tytuł brany jest z nazwy pliku. Obsługiwane klucze: `title`, `author`, `extra`.
-Liczba pustych linii między nagłówkiem a tekstem nie ma znaczenia.
+**Nagłówek** — linie `{klucz}wartość` na początku pliku. Obsługiwane klucze:
+
+| klucz      | wymagany | znaczenie             |
+| ---------- | -------- | --------------------- |
+| `{title}`  | tak      | tytuł piosenki        |
+| `{author}` | tak      | wykonawca             |
+| `{extra}`  | nie      | dopisek, np. `capo 2` |
+
+Piosenka bez tytułu albo bez wykonawcy jest **nieprawidłowa** — nie trafia do PDF-a,
+a CLI wypisuje, czego brakuje. To samo dotyczy pliku bez tekstu.
+
+`{ref}` i `{chords}` nie są kluczami nagłówka — jeśli piosenka zaczyna się od refrenu
+albo od intra, parser poprawnie potraktuje je jako treść. Liczba pustych linii między
+nagłówkiem a tekstem nie ma znaczenia.
+
+**Pasaże instrumentalne** — linia `{chords}eCGD` to fragment bez tekstu: intro, bridge,
+przejście. Drukuje się w kolumnie tekstu, nie w kolumnie akordów, i bez żadnego prefiksu —
+nie ma obok czego stać. Może wystąpić w dowolnym miejscu piosenki, nie tylko na początku.
+
+Taka linia **nie zmienia** akordów dziedziczonych przez tekst: po bridge'u kolejne wersy
+nadal mają akordy sprzed niego.
 
 **Zwrotki** — oddzielone pustą linią. Zwrotka nigdy nie jest rozrywana między stronami.
 
@@ -82,6 +105,12 @@ nie bemol; `--notation intl` przełącza na międzynarodową, gdzie `Ab` to As-d
 npm run generate-song-list
 ```
 
+a dla plików testowych:
+
+```bash
+npm run generate-song-list test-songs
+```
+
 ---
 
 ## CLI
@@ -90,6 +119,7 @@ npm run generate-song-list
 npm run pdf:book          # cały śpiewnik -> output/spiewnik-RRRR-MM-DD.pdf
 npm run pdf:print         # tylko nowe piosenki -> output/do-druku-RRRR-MM-DD.pdf
 npm run pdf:history       # co jest wydrukowane, a co czeka
+npm run pdf:test          # śpiewnik z plików testowych w test-songs/
 npm run pdf -- help       # pełna lista opcji
 ```
 
@@ -99,18 +129,18 @@ Opcje podaje się po `--`, np.:
 npm run pdf:print -- --page-size A5 --bold --chords right
 ```
 
-| Opcja                                           | Znaczenie                                               |
-| ----------------------------------------------- | ------------------------------------------------------- |
-| `--page-size A4\|A5`                            | format strony (A5 ma automatycznie większą czcionkę)    |
-| `--chords above\|right\|none`                   | akordy nad tekstem / w kolumnie po prawej / bez akordów |
-| `--no-split-chords`                             | drukuj akordy dosłownie (`AaDeD`)                       |
-| `--notation pl\|intl`                           | notacja akordów                                         |
-| `--font-size` / `--chord-size` / `--title-size` | rozmiary czcionek                                       |
-| `--bold`                                        | pogrubiony tekst piosenek                               |
-| `--line-height`                                 | interlinia                                              |
-| `--title "..."`                                 | tytuł dokumentu i okładki                               |
-| `--songs a.txt,b.txt`                           | ogranicz do wybranych plików                            |
-| `--out plik.pdf`                                | plik wyjściowy                                          |
+| Opcja                                           | Znaczenie                                                 |
+| ----------------------------------------------- | --------------------------------------------------------- |
+| `--page-size A4\|A5`                            | format strony (A5 ma automatycznie większą czcionkę)      |
+| `--chords right\|above\|none`                   | kolumna po prawej (domyślnie) / nad tekstem / bez akordów |
+| `--no-split-chords`                             | drukuj akordy dosłownie (`AaDeD`)                         |
+| `--notation pl\|intl`                           | notacja akordów                                           |
+| `--font-size` / `--chord-size` / `--title-size` | rozmiary czcionek                                         |
+| `--bold`                                        | pogrubiony tekst piosenek                                 |
+| `--line-height`                                 | interlinia                                                |
+| `--title "..."`                                 | tytuł dokumentu i okładki                                 |
+| `--songs a.txt,b.txt`                           | ogranicz do wybranych plików                              |
+| `--out plik.pdf`                                | plik wyjściowy                                            |
 
 Tylko `book`: `--no-cover`, `--no-toc`, `--no-page-numbers`,
 `--toc-title "Spis treści"`, `--subtitle "..."` (linia pod tytułem na okładce),
@@ -178,7 +208,8 @@ src/songbook/            rdzeń - bez Angulara i bez Node'a
   history/               print-history.ts (wybór niedrukowanych, hash treści)
 scripts/cli/             CLI (tsc -> dist/cli, uruchamiane przez npm run pdf:*)
 src/app/                 aplikacja Angular
-src/assets/              piosenki .txt, __songs__.txt, print-history.json
+src/assets/              Twoje piosenki .txt, __songs__.txt, print-history.json
+test-songs/              pliki testowe formatu, osobno od prawdziwych piosenek
 output/                  wygenerowane PDF-y (gitignore)
 ```
 
@@ -188,3 +219,6 @@ output/                  wygenerowane PDF-y (gitignore)
 npm test
 npm run lint
 ```
+
+Testy chodzą na Jeście (`jest-preset-angular`), nie przez `ng test` — własny builder
+Angulara obsługuje tylko Karmę i Vitest, więc Jest jest odpalany wprost.
