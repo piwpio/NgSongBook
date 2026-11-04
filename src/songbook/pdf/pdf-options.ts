@@ -25,6 +25,12 @@ export interface PdfOptions {
   titleFontSize: number;
   /** Print lyrics in bold - handy on A5 / when photocopying. */
   boldLyrics: boolean;
+  /**
+   * Start every verse and chorus with a capital letter, whatever the source
+   * file does. Only the first line of the block that HAS lyrics is touched -
+   * never the chords, where a lowercase letter means a minor chord.
+   */
+  capitalizeBlocks: boolean;
   lineHeight: number;
   /** [left, top, right, bottom] */
   margins: [number, number, number, number];
@@ -58,6 +64,7 @@ const BASE = {
   chordNotation: 'pl' as ChordNotation,
   lyricsColumnRatio: 0.5,
   boldLyrics: false,
+  capitalizeBlocks: true,
   songPerPage: true,
   title: 'Śpiewnik Złotego',
 };

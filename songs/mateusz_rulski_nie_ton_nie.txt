@@ -5,24 +5,27 @@
 {chords}d A g A
 {chords}F g F g d A
 
-Gdy pęknięty ciszy kamień trzyma Cię w bezdechu na dnie|d A g A
+Gdy pęknięty ciszy kamień trzyma Cię w bezdechu na dnie,|d A g A
 a rezultat dochodzenia zatopienia już nie zmienia|F g d A
 
-{ref1}nie toń nie toń nietoń twa, grzeb się synu z tego dna|d A g d
-wynuż łeb i płyń do plaży jeszcze wszystko się wydarzy nie toń nie|F g F g A d
+{ref1}nie toń nie toń nietoń twa, grzeb się, synu, z tego dna|d A g d
+wynurz łeb i płyń do plaży, jeszcze wszystko się wydarzy, nie toń, nie|F g F g A d
 
 {chords}d A g A
 {chords}F g F g A
 
-może jakiś homar krab bedzie lazł to się go łap|d A g A
-niech wywlecze Cię na brzeg zmieni denny prądów bieg|F g d A
+może jakiś homar, krab będzie lazł, to się go łap|d A g A
+niech wywlecze Cię na brzeg, zmieni denny prądów bieg|F g d A
 
 {ref1}
 
-może w ryku fal w zawiei kamień zmięknie i się sklei|d A g A
+{chords}d A g A
+{chords}F g F g A
+
+może w ryku fal w zawiei kamień zmięknie i się sklei,|d A g A
 odpowiedzią wiatr połechce, może pytań się odechce|F g d A
 
-{ref2}więc nie toń nie toń nietoń twa, grzeb się synu z tego dna|d A g d
-wynurz łeb i płyń do plaży jeszcze wszystko się wydarzy nie toń nie|F g F g A d
+{ref2} więc nie toń nie toń nietoń twa, grzeb się, synu, z tego dna|d A g d
+wynurz łeb i płyń do plaży, jeszcze wszystko się wydarzy, nie toń, nie|F g F g A d
 
 {ref1}

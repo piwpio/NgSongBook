@@ -78,6 +78,11 @@ nadal mają akordy sprzed niego.
 
 **Zwrotki** — oddzielone pustą linią. Zwrotka nigdy nie jest rozrywana między stronami.
 
+Każda zwrotka i każdy refren zaczynają się w druku **wielką literą**, niezależnie od tego,
+jak zapisałeś je w pliku. Zmieniana jest tylko pierwsza linia bloku, która ma tekst — nigdy
+akordy, bo w notacji polskiej mała litera to moll i `a` zamienione na `A` byłoby już innym
+akordem. Wyłącza to `--no-capitalize`.
+
 **Refren** — blok zaczynający się od `{ref}`:
 
 - `{ref} tekst refrenu` — tu refren jest zapisany. Marker nie trafia do druku,

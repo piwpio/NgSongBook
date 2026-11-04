@@ -39,6 +39,7 @@ Common options:
   --chord-size N              chord size (A4: 9.5, A5: 10.5)
   --title-size N              song title size
   --bold                      bold lyrics (useful on A5)
+  --no-capitalize             leave the opening letter of each verse as written
   --line-height N             line height (A4: 1.25, A5: 1.18)
   --title "My songbook"       document / cover title
   --songs a.txt,b.txt         limit to the given files
@@ -83,6 +84,7 @@ function pdfOptionsFrom(flags: ParsedArgs['flags']): Partial<PdfOptions> {
     chordFontSize: num(flags, 'chord-size'),
     titleFontSize: num(flags, 'title-size'),
     boldLyrics: bool(flags, 'bold'),
+    capitalizeBlocks: bool(flags, 'capitalize'),
     lineHeight: num(flags, 'line-height'),
     title: str(flags, 'title'),
     // Real glyph widths, so the chord column can sit right next to the lyrics.

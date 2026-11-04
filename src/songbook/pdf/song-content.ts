@@ -130,8 +130,13 @@ function buildBlock(block: SongBlock, options: PdfOptions, lyricsWidth: number):
   const indent = block.kind === 'chorus' ? options.chorusIndent : 0;
   const lines: Content[] = [];
 
-  block.lines.forEach(line => {
-    lines.push(...buildLine(line, options, lyricsWidth, indent));
+  // The block opens on its first line that actually carries words - a verse
+  // may well start with a {chords} passage.
+  const openingLine = options.capitalizeBlocks ? block.lines.findIndex(line => !line.chordsOnly && line.lyrics !== '') : -1;
+
+  block.lines.forEach((line, index) => {
+    const opening = index === openingLine;
+    lines.push(...buildLine(line, options, lyricsWidth, indent, opening));
   });
 
   return {
@@ -144,8 +149,9 @@ function buildBlock(block: SongBlock, options: PdfOptions, lyricsWidth: number):
   };
 }
 
-function buildLine(line: SongLine, options: PdfOptions, lyricsWidth: number, indent: number): Content[] {
+function buildLine(line: SongLine, options: PdfOptions, lyricsWidth: number, indent: number, opening = false): Content[] {
   const chordText = renderChords(line, options);
+  const lyrics = opening ? capitalizeFirst(line.lyrics) : line.lyrics;
   const margin: [number, number, number, number] = [indent, 0, 0, 0];
 
   // A `{chords}` passage has no lyrics to sit beside, so it goes where the
@@ -155,14 +161,14 @@ function buildLine(line: SongLine, options: PdfOptions, lyricsWidth: number, ind
   }
 
   if (options.chordLayout === 'none' || !chordText) {
-    return [{ text: line.lyrics, style: SONG_STYLES.lyrics, margin }];
+    return [{ text: lyrics, style: SONG_STYLES.lyrics, margin }];
   }
 
   if (options.chordLayout === 'right') {
     return [
       {
         columns: [
-          { text: line.lyrics, style: SONG_STYLES.lyrics, width: lyricsWidth, margin },
+          { text: lyrics, style: SONG_STYLES.lyrics, width: lyricsWidth, margin },
           {
             // Left aligned so the chords form one straight vertical column
             // the eye can run down, instead of a ragged right edge.
@@ -181,8 +187,18 @@ function buildLine(line: SongLine, options: PdfOptions, lyricsWidth: number, ind
   // 'above'
   return [
     { text: chordText, style: SONG_STYLES.chords, margin },
-    { text: line.lyrics, style: SONG_STYLES.lyrics, margin },
+    { text: lyrics, style: SONG_STYLES.lyrics, margin },
   ];
+}
+
+/** Upper-cases the opening letter, leaving anything that is not a letter alone. */
+function capitalizeFirst(text: string): string {
+  if (!text) {
+    return text;
+  }
+  const first = text[0];
+  const upper = first.toLocaleUpperCase('pl-PL');
+  return upper === first ? text : upper + text.slice(1);
 }
 
 function renderChords(line: SongLine, options: PdfOptions): string {
