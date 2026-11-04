@@ -7,9 +7,7 @@ import { TFontDictionary } from 'pdfmake/interfaces';
  * standard-14 fonts do not (WinAnsi has no ą/ę/ł/ś/ż/ź/ć/ń).
  */
 export function robotoFonts(): TFontDictionary {
-  /* eslint-disable @typescript-eslint/no-var-requires */
   const vfsModule = require('pdfmake/build/vfs_fonts.js') as Record<string, unknown>;
-  /* eslint-enable @typescript-eslint/no-var-requires */
 
   const container = (vfsModule['pdfMake'] ?? vfsModule) as Record<string, unknown>;
   const vfs = (container['vfs'] ?? container) as Record<string, string>;
@@ -38,12 +36,10 @@ export function robotoFonts(): TFontDictionary {
  * instead of guessing a fraction of the page.
  */
 export function measureRoboto(): (text: string, fontSize: number, bold: boolean) => number {
-  /* eslint-disable @typescript-eslint/no-var-requires */
   const PDFDocument = require('@foliojs-fork/pdfkit') as new (options: object) => {
     registerFont: (name: string, src: Buffer) => void;
     font: (name: string) => { fontSize: (size: number) => { widthOfString: (t: string) => number } };
   };
-  /* eslint-enable @typescript-eslint/no-var-requires */
 
   const fonts = robotoFonts()['Roboto'];
   const doc = new PDFDocument({ autoFirstPage: false });

@@ -4,7 +4,6 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
   selector: 'app-page',
   templateUrl: './page.component.html',
   styleUrls: ['./page.component.scss'],
-  changeDetection: ChangeDetectionStrategy.Eager,
-  standalone: false,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PageComponent {}

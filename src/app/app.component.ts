@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { ChordLayout, PageSize, PrintHistory, PrintStatus, Song, emptyHistory, selectForPrint, statusOf } from '../songbook';
 import { PdfService } from './services/pdf.service';
 import { PrintHistoryService } from './services/print-history.service';
 import { SongService } from './services/song.service';
+import { FormsModule } from '@angular/forms';
 
 interface SongRow {
   song: Song;
@@ -10,13 +11,18 @@ interface SongRow {
 }
 
 @Component({
-    selector: 'app-root',
-    templateUrl: './app.component.html',
-    styleUrls: ['./app.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FormsModule],
 })
 export class AppComponent implements OnInit {
+  private readonly songService = inject(SongService);
+  private readonly printHistory = inject(PrintHistoryService);
+  private readonly pdf = inject(PdfService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
   songs: Song[] = [];
   rows: SongRow[] = [];
   history: PrintHistory = emptyHistory();
@@ -35,13 +41,6 @@ export class AppComponent implements OnInit {
     changed: 'changed',
     printed: 'printed',
   };
-
-  constructor(
-    private readonly songService: SongService,
-    private readonly printHistory: PrintHistoryService,
-    private readonly pdf: PdfService,
-    private readonly cdr: ChangeDetectorRef
-  ) {}
 
   ngOnInit(): void {
     this.printHistory.loadBaseline().subscribe(history => {

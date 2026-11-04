@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, map, of } from 'rxjs';
 import { PrintHistory, Song, emptyHistory, markPrinted, parseHistory, serialiseHistory } from '../../songbook';
 
@@ -16,9 +16,9 @@ const STORAGE_KEY = 'ngsongbook.print-history';
  */
 @Injectable({ providedIn: 'root' })
 export class PrintHistoryService {
-  private baseline: PrintHistory = emptyHistory();
+  private readonly httpClient = inject(HttpClient);
 
-  constructor(private readonly httpClient: HttpClient) {}
+  private baseline: PrintHistory = emptyHistory();
 
   loadBaseline(): Observable<PrintHistory> {
     return this.httpClient.get(BASELINE_URL, { responseType: 'text' }).pipe(

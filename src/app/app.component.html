@@ -81,14 +81,10 @@
     <div class="blocks">
       @for (block of row.song.blocks; track block) {
       <div class="block" [class.chorus]="block.kind === 'chorus'">
-        @for (line of block.lines; track line; let i = $index) {
+        @for (line of block.lines; track $index) {
         <div class="line">
           <span class="chords">{{ splitChords ? line.chords.join('  ') : line.rawChords }}</span>
-          <span class="lyrics">
-            @if (block.kind === 'chorus' && i === 0) {
-            <b>{{ block.label || 'Ref.' }}&nbsp;</b>
-            }{{ line.lyrics }}
-          </span>
+          <span class="lyrics">{{ line.lyrics }}</span>
         </div>
         }
       </div>

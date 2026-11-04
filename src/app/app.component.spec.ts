@@ -7,8 +7,7 @@ import { provideHttpClient, withInterceptorsFromDi, withXhr } from '@angular/com
 describe('AppComponent', () => {
   beforeEach(() =>
     TestBed.configureTestingModule({
-      declarations: [AppComponent],
-      imports: [FormsModule],
+      imports: [AppComponent, FormsModule],
       providers: [provideHttpClient(withXhr(), withInterceptorsFromDi()), provideHttpClientTesting()],
     })
   );

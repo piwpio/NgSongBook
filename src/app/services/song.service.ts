@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable, forkJoin, map, of, switchMap } from 'rxjs';
 import { ChordNotation, Song, parseSong } from '../../songbook';
 
@@ -7,7 +7,7 @@ const SONG_LIST = 'assets/__songs__.txt';
 
 @Injectable({ providedIn: 'root' })
 export class SongService {
-  constructor(private readonly httpClient: HttpClient) {}
+  private readonly httpClient = inject(HttpClient);
 
   /**
    * Loads every song listed in `assets/__songs__.txt`.
