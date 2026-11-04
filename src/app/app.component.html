@@ -57,32 +57,46 @@
   </p>
 </section>
 
-<p *ngIf="loading" class="muted">Loading songs&hellip;</p>
-<p *ngIf="error" class="error">{{ error }}</p>
+@if (loading) {
+<p class="muted">Loading songs&hellip;</p>
+} @if (error) {
+<p class="error">{{ error }}</p>
+}
 
 <ol class="songs">
-  <li *ngFor="let row of rows; trackBy: trackBySong">
+  @for (row of rows; track trackBySong($index, row)) {
+  <li>
     <div class="song-head">
       <span class="song-title">{{ row.song.meta.title }}</span>
       <span class="badge" [class]="'badge-' + row.status">{{ statusLabel[row.status] }}</span>
     </div>
     <div class="song-meta">
-      <span *ngIf="row.song.meta.author">{{ row.song.meta.author }}</span>
-      <span *ngIf="row.song.meta.extra" class="muted">{{ row.song.meta.extra }}</span>
+      @if (row.song.meta.author) {
+      <span>{{ row.song.meta.author }}</span>
+      } @if (row.song.meta.extra) {
+      <span class="muted">{{ row.song.meta.extra }}</span>
+      }
       <span class="muted">{{ row.song.sourceFile }}</span>
     </div>
-
     <div class="blocks">
-      <div *ngFor="let block of row.song.blocks" class="block" [class.chorus]="block.kind === 'chorus'">
-        <div *ngFor="let line of block.lines; let i = index" class="line">
+      @for (block of row.song.blocks; track block) {
+      <div class="block" [class.chorus]="block.kind === 'chorus'">
+        @for (line of block.lines; track line; let i = $index) {
+        <div class="line">
           <span class="chords">{{ splitChords ? line.chords.join('  ') : line.rawChords }}</span>
           <span class="lyrics">
-            <b *ngIf="block.kind === 'chorus' && i === 0">{{ block.label || 'Ref.' }}&nbsp;</b>{{ line.lyrics }}
+            @if (block.kind === 'chorus' && i === 0) {
+            <b>{{ block.label || 'Ref.' }}&nbsp;</b>
+            }{{ line.lyrics }}
           </span>
         </div>
+        }
       </div>
+      }
     </div>
-
-    <p *ngIf="row.song.warnings.length" class="warn">{{ row.song.warnings.join(' · ') }}</p>
+    @if (row.song.warnings.length) {
+    <p class="warn">{{ row.song.warnings.join(' · ') }}</p>
+    }
   </li>
+  }
 </ol>
