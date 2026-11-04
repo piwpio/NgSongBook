@@ -1,3 +1,90 @@
-<ng-container *ngFor="let song of songs">
-  <div>{{ song }}</div>
-</ng-container>
+<header class="topbar">
+  <h1>Śpiewnik</h1>
+  <p class="muted">{{ songs.length }} piosenek &middot; {{ pending.length }} czeka na druk</p>
+</header>
+
+<section class="panel">
+  <div class="options">
+    <label>
+      Format
+      <select [(ngModel)]="pageSize">
+        <option value="A4">A4</option>
+        <option value="A5">A5 (większa czcionka)</option>
+      </select>
+    </label>
+
+    <label>
+      Akordy
+      <select [(ngModel)]="chordLayout">
+        <option value="above">nad tekstem</option>
+        <option value="right">kolumna po prawej</option>
+        <option value="none">bez akordów</option>
+      </select>
+    </label>
+
+    <label class="check">
+      <input type="checkbox" [(ngModel)]="boldLyrics" />
+      pogrubiony tekst
+    </label>
+
+    <label class="check">
+      <input type="checkbox" [(ngModel)]="splitChords" />
+      rozdzielaj akordy (A a D e D)
+    </label>
+
+    <label class="check">
+      <input type="checkbox" [(ngModel)]="includeChanged" />
+      do druku też zmienione
+    </label>
+
+    <label>
+      Tytuł śpiewnika
+      <input type="text" [(ngModel)]="bookTitle" />
+    </label>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="primary" [disabled]="songs.length === 0" (click)="generateSongbook()">Generuj cały śpiewnik (PDF)</button>
+    <button type="button" [disabled]="pending.length === 0" (click)="generatePrintSet()">
+      Generuj piosenki do druku ({{ pending.length }})
+    </button>
+    <button type="button" class="ghost" (click)="downloadHistory()">Pobierz print-history.json</button>
+    <button type="button" class="ghost" (click)="resetLocalHistory()">Wyczyść lokalną historię</button>
+  </div>
+
+  <p class="hint">
+    Cały śpiewnik ma okładkę, klikalny spis treści i numery stron. Zestaw do druku nie ma ani spisu, ani numerów stron &ndash; i zawiera
+    tylko piosenki jeszcze niedrukowane. Zapisuje się w tej przeglądarce; żeby utrwalić to w repo, pobierz <code>print-history.json</code> i
+    podmień plik w <code>src/assets/</code> (albo użyj <code>npm run pdf:print</code>).
+  </p>
+</section>
+
+<p *ngIf="loading" class="muted">Wczytywanie piosenek&hellip;</p>
+<p *ngIf="error" class="error">{{ error }}</p>
+
+<ol class="songs">
+  <li *ngFor="let row of rows; trackBy: trackBySong">
+    <div class="song-head">
+      <span class="song-title">{{ row.song.meta.title }}</span>
+      <span class="badge" [class]="'badge-' + row.status">{{ statusLabel[row.status] }}</span>
+    </div>
+    <div class="song-meta">
+      <span *ngIf="row.song.meta.author">{{ row.song.meta.author }}</span>
+      <span *ngIf="row.song.meta.extra" class="muted">{{ row.song.meta.extra }}</span>
+      <span class="muted">{{ row.song.sourceFile }}</span>
+    </div>
+
+    <div class="blocks">
+      <div *ngFor="let block of row.song.blocks" class="block" [class.chorus]="block.kind === 'chorus'">
+        <div *ngFor="let line of block.lines; let i = index" class="line">
+          <span class="chords">{{ splitChords ? line.chords.join('  ') : line.rawChords }}</span>
+          <span class="lyrics">
+            <b *ngIf="block.kind === 'chorus' && i === 0">{{ block.label || 'Ref.' }}&nbsp;</b>{{ line.lyrics }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <p *ngIf="row.song.warnings.length" class="warn">{{ row.song.warnings.join(' · ') }}</p>
+  </li>
+</ol>

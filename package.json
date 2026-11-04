@@ -9,7 +9,12 @@
     "test": "ng test",
     "lint": "ng lint",
     "prettier": "npx prettier --write .",
-    "generate-song-list": "cd scripts && node generate-song-list"
+    "generate-song-list": "cd scripts && node generate-song-list",
+    "pdf:build": "tsc -p tsconfig.cli.json",
+    "pdf": "npm run pdf:build --silent && node dist/cli/scripts/cli/pdf-cli.js",
+    "pdf:book": "npm run pdf --silent -- book",
+    "pdf:print": "npm run pdf --silent -- print",
+    "pdf:history": "npm run pdf --silent -- history"
   },
   "private": true,
   "dependencies": {
@@ -22,6 +27,7 @@
     "@angular/platform-browser-dynamic": "^16.2.0",
     "@angular/router": "^16.2.0",
     "lodash": "^4.17.21",
+    "pdfmake": "^0.2.12",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.13.0"
@@ -37,6 +43,7 @@
     "@angular/compiler-cli": "^16.2.0",
     "@types/jasmine": "~4.3.0",
     "@types/lodash": "^4.14.200",
+    "@types/pdfmake": "^0.2.9",
     "@typescript-eslint/eslint-plugin": "5.62.0",
     "@typescript-eslint/parser": "5.62.0",
     "eslint": "^8.49.0",

@@ -1,0 +1,203 @@
+:host {
+  display: block;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px 20px 64px;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  color: #1d1d1f;
+}
+
+.topbar {
+  h1 {
+    margin: 0;
+    font-size: 28px;
+  }
+}
+
+.muted {
+  color: #6b6b70;
+}
+
+.error {
+  color: #b00020;
+}
+
+.warn {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #8a6d00;
+}
+
+.panel {
+  margin: 18px 0 28px;
+  padding: 16px;
+  border: 1px solid #e3e3e6;
+  border-radius: 10px;
+  background: #fafafb;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 22px;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: #44444a;
+  }
+
+  label.check {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+  }
+
+  select,
+  input[type='text'] {
+    padding: 5px 7px;
+    border: 1px solid #c9c9cf;
+    border-radius: 6px;
+    font-size: 13px;
+    background: #fff;
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+
+  button {
+    padding: 8px 14px;
+    border: 1px solid #c9c9cf;
+    border-radius: 7px;
+    background: #fff;
+    font-size: 13px;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      border-color: #8e8e95;
+    }
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    &.primary {
+      background: #1a4f8a;
+      border-color: #1a4f8a;
+      color: #fff;
+    }
+
+    &.ghost {
+      background: transparent;
+      color: #44444a;
+    }
+  }
+}
+
+.hint {
+  margin: 14px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #6b6b70;
+
+  code {
+    background: #ececef;
+    padding: 1px 4px;
+    border-radius: 4px;
+  }
+}
+
+.songs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  > li {
+    padding: 18px 0;
+    border-top: 1px solid #ececef;
+  }
+}
+
+.song-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.song-title {
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid transparent;
+}
+
+.badge-new {
+  background: #e7f3ff;
+  color: #1a4f8a;
+  border-color: #bcd9f5;
+}
+
+.badge-changed {
+  background: #fff6e0;
+  color: #8a6d00;
+  border-color: #f0dca6;
+}
+
+.badge-printed {
+  background: #eef0f1;
+  color: #6b6b70;
+  border-color: #dcdfe1;
+}
+
+.song-meta {
+  display: flex;
+  gap: 12px;
+  margin: 2px 0 10px;
+  font-size: 12px;
+  color: #44444a;
+}
+
+.block {
+  margin-bottom: 12px;
+
+  &.chorus {
+    padding-left: 16px;
+    border-left: 2px solid #d8d8dd;
+  }
+}
+
+.line {
+  margin-bottom: 2px;
+}
+
+.chords {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: #1a4f8a;
+  min-height: 14px;
+}
+
+.lyrics {
+  display: block;
+  font-size: 15px;
+  line-height: 1.3;
+}

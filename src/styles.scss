@@ -1,1 +1,9 @@
-/* You can add global styles to this file, and also import other style files */
+/* Global styles. The app is a print tool - it always renders on paper white,
+   regardless of the OS/browser dark mode preference. */
+html,
+body {
+  margin: 0;
+  background: #ffffff;
+  color: #1d1d1f;
+  color-scheme: light;
+}
