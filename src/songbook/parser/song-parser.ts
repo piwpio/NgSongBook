@@ -1,4 +1,4 @@
-import { Song, SongBlock, SongBlockKind, SongLine, SongMeta } from '../model/song.model';
+import { Song, SongBlock, SongBlockKind, SongMeta } from '../model/song.model';
 import { ChordNotation, tokenizeChords } from './chord-tokenizer';
 
 export const SONG_FORMAT = {
@@ -6,8 +6,14 @@ export const SONG_FORMAT = {
   metaLine: /^\s*\{([a-zA-Z][\w-]*)\}[ \t]?(.*)$/,
   /** Everything after the first `|` on a lyrics line is the chord string. */
   chordSeparator: '|',
-  /** Marks the beginning of a chorus block. Must be followed by `.`, `:` or whitespace. */
-  chorusMarker: /^(ref|refren|refr|chorus)(\.|:|\s)\s*/i,
+  /** `{ref}` followed by lyrics - the block that defines the chorus. */
+  chorusMarker: /^\{ref}\s*/i,
+  /** A line holding nothing but `{ref}` - print the chorus again here. */
+  chorusRepeat: /^\{ref}$/i,
+  /** Pre-`{ref}` spellings, still accepted as a definition but warned about. */
+  legacyChorusMarker: /^(\[ref]|ref|refren|refr|chorus)(\.|:|\s|$)\s*/i,
+  /** Meta key that is NOT meta - it marks a chorus and belongs to the lyrics. */
+  chorusMetaKey: 'ref',
   knownMetaKeys: ['title', 'author', 'extra'] as const,
 } as const;
 
@@ -20,13 +26,18 @@ export interface ParseSongOptions {
 export function parseSong(raw: string, sourceFile = '', options: ParseSongOptions = {}): Song {
   const notation = options.chordNotation ?? 'pl';
   const warnings: string[] = [];
+  const errors: string[] = [];
 
   const lines = normalise(raw).split('\n');
   const { meta, rest } = readMeta(lines, warnings);
 
+  // {title} and {author} are required; {extra} is not.
   const title = meta['title'] ?? options.fallbackTitle ?? prettifyFileName(sourceFile);
   if (!meta['title']) {
-    warnings.push('No {title} - the title was taken from the file name.');
+    errors.push('Missing {title}.');
+  }
+  if (!meta['author']) {
+    errors.push('Missing {author}.');
   }
 
   const songMeta: SongMeta = { title };
@@ -37,9 +48,9 @@ export function parseSong(raw: string, sourceFile = '', options: ParseSongOption
     songMeta.extra = meta['extra'];
   }
 
-  const blocks = parseBlocks(rest, notation);
+  const blocks = parseBlocks(rest, notation, warnings);
   if (blocks.length === 0) {
-    warnings.push('The song has no lyrics.');
+    errors.push('The song has no lyrics.');
   }
 
   return {
@@ -48,7 +59,8 @@ export function parseSong(raw: string, sourceFile = '', options: ParseSongOption
     meta: songMeta,
     blocks,
     raw,
-    valid: blocks.length > 0,
+    valid: errors.length === 0,
+    errors,
     warnings,
   };
 }
@@ -84,6 +96,10 @@ function readMeta(lines: string[], warnings: string[]): { meta: Record<string, s
       break;
     }
     const key = match[1].toLowerCase();
+    if (key === SONG_FORMAT.chorusMetaKey) {
+      // `{ref}` looks like a meta line but it opens the chorus - lyrics start here.
+      break;
+    }
     const value = match[2].trim();
     if (!(SONG_FORMAT.knownMetaKeys as readonly string[]).includes(key)) {
       warnings.push(`Unknown meta key: {${key}}`);
@@ -96,15 +112,20 @@ function readMeta(lines: string[], warnings: string[]): { meta: Record<string, s
   return { meta, rest: lines.slice(index) };
 }
 
-function parseBlocks(lines: string[], notation: ChordNotation): SongBlock[] {
+function parseBlocks(lines: string[], notation: ChordNotation, warnings: string[]): SongBlock[] {
   const blocks: SongBlock[] = [];
   let current: SongBlock | null = null;
+  /** The chorus as written, so a bare `[ref]` can print it again. */
+  let chorus: SongBlock | null = null;
   /** Chords carry over line after line, and across blocks, until replaced. */
   let lastChords = '';
 
   const closeBlock = () => {
     if (current && current.lines.length > 0) {
       blocks.push(current);
+      if (current.kind === 'chorus' && !current.isRepeat) {
+        chorus = current;
+      }
     }
     current = null;
   };
@@ -112,6 +133,17 @@ function parseBlocks(lines: string[], notation: ChordNotation): SongBlock[] {
   for (const rawLine of lines) {
     if (rawLine.trim() === '') {
       closeBlock();
+      continue;
+    }
+
+    // A line that is only `[ref]` is not lyrics - it repeats the chorus.
+    if (SONG_FORMAT.chorusRepeat.test(rawLine.trim())) {
+      closeBlock();
+      if (chorus) {
+        blocks.push(repeatOf(chorus));
+      } else {
+        warnings.push('{ref} used before the chorus was written out - skipped.');
+      }
       continue;
     }
 
@@ -125,35 +157,52 @@ function parseBlocks(lines: string[], notation: ChordNotation): SongBlock[] {
     }
 
     let kind: SongBlockKind = 'verse';
-    let label: string | undefined;
 
     if (!current) {
-      const chorusMatch = SONG_FORMAT.chorusMarker.exec(lyrics);
-      if (chorusMatch) {
+      const marker = SONG_FORMAT.chorusMarker.exec(lyrics);
+      if (marker) {
         kind = 'chorus';
-        label = chorusMatch[0].trim();
-        lyrics = lyrics.slice(chorusMatch[0].length).trim();
+        lyrics = lyrics.slice(marker[0].length).trim();
+      } else {
+        const legacy = SONG_FORMAT.legacyChorusMarker.exec(lyrics);
+        if (legacy) {
+          kind = 'chorus';
+          lyrics = lyrics.slice(legacy[0].length).trim();
+          warnings.push(`Chorus marked as "${legacy[0].trim()}" - write {ref} instead.`);
+        }
       }
-      current = label ? { kind, label, lines: [] } : { kind, lines: [] };
+      current = { kind, lines: [] };
     }
 
-    const line: SongLine = {
+    current.lines.push({
       lyrics,
       rawChords: lastChords,
       chords: tokenizeChords(lastChords, notation),
       chordsExplicit: hasOwnChords && ownChords.length > 0,
-    };
-    current.lines.push(line);
+    });
   }
 
   closeBlock();
   return blocks;
 }
 
+/**
+ * A copy of the chorus for a bare `[ref]`. The chords come along, and the
+ * running chord state is left alone, so whatever follows picks up where the
+ * verse before the chorus left off.
+ */
+function repeatOf(chorus: SongBlock): SongBlock {
+  return {
+    kind: 'chorus',
+    isRepeat: true,
+    lines: chorus.lines.map(line => ({ ...line, chords: [...line.chords] })),
+  };
+}
+
 export function prettifyFileName(fileName: string): string {
   const base = fileName.replace(/^.*[\\/]/, '').replace(/\.[^.]+$/, '');
   if (!base) {
-    return 'Untitled';
+    return 'Bez tytułu';
   }
   const spaced = base.replace(/[_-]+/g, ' ').trim();
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);

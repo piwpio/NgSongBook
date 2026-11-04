@@ -25,8 +25,8 @@ export interface SongLine {
 
 export interface SongBlock {
   kind: SongBlockKind;
-  /** Marker found in the source, e.g. 'ref.' - only for `chorus`. */
-  label?: string;
+  /** True when this chorus came from a bare `[ref]` line, not from the original one. */
+  isRepeat?: boolean;
   lines: SongLine[];
 }
 
@@ -39,8 +39,11 @@ export interface Song {
   blocks: SongBlock[];
   /** Raw file content, kept for change detection in the print history. */
   raw: string;
+  /** False when `errors` is non-empty - the song is then left out of the PDF. */
   valid: boolean;
-  /** Non-fatal problems, e.g. a missing {title}. */
+  /** Things that make the song unusable: a missing {title}, {author} or lyrics. */
+  errors: string[];
+  /** Non-fatal remarks, e.g. an unknown meta key or the old chorus spelling. */
   warnings: string[];
 }
 

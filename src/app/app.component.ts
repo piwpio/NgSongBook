@@ -23,7 +23,7 @@ export class AppComponent implements OnInit {
   error = '';
 
   pageSize: PageSize = 'A4';
-  chordLayout: ChordLayout = 'above';
+  chordLayout: ChordLayout = 'right';
   boldLyrics = false;
   splitChords = true;
   includeChanged = false;

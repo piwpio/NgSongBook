@@ -16,9 +16,9 @@ describe('AppComponent', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('starts with the A4 / chords-above defaults', () => {
+  it('starts with the A4 / chords-on-the-right defaults', () => {
     const app = TestBed.createComponent(AppComponent).componentInstance;
     expect(app.pageSize).toEqual('A4');
-    expect(app.chordLayout).toEqual('above');
+    expect(app.chordLayout).toEqual('right');
   });
 });

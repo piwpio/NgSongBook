@@ -1,12 +1,15 @@
-{title}Tytuł piosenki
-{author}Wykonawca piosenki
+{title}Trzecia
+{author}Ktoś Inny
 
 
 to jest linia pierwsza|AaDeD
 to jest linia druga
 to jest linia trzecia|AaDeD
-to jest linia czwarta|abDeGEGE
+
+{ref}to jest refren trzeciej piosenki|abDeGEGE
+druga linia refrenu
+
+to jest linia czwarta|AaDeD
 to jest linia piąta
-to jest linia szósta
-to jest linia siódma
-to jest linia ósma
+
+{ref}

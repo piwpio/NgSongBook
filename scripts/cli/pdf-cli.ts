@@ -20,7 +20,7 @@ import {
 } from '../../src/songbook';
 import { ChordNotation } from '../../src/songbook/parser/chord-tokenizer';
 import { ParsedArgs, bool, list, num, parseArgs, str } from './args';
-import { robotoFonts } from './fonts';
+import { measureRoboto, robotoFonts } from './fonts';
 import { HISTORY_FILE, ensureDir, findProjectRoot, loadSongs, timestampSlug } from './workspace';
 
 const USAGE = `
@@ -32,7 +32,7 @@ Songbook - PDF generator
 
 Common options:
   --page-size A4|A5           page format (default A4)
-  --chords above|right|none   chords above the lyrics / in a right hand column / no chords
+  --chords right|above|none   right hand column (default) / above the lyrics / no chords
   --no-split-chords           print chords exactly as written (AaDeD instead of A  a  D  e  D)
   --notation pl|intl          'pl' (default): b is its own chord; 'intl': b after a root is a flat
   --font-size N               lyrics size (A4: 11, A5: 12)
@@ -50,7 +50,7 @@ Common options:
   --no-cover                  no cover page
   --no-toc                    no table of contents
   --no-page-numbers           no page numbers
-  --toc-title "Contents"      heading above the table of contents
+  --toc-title "..."           heading above the table of contents (default "Spis treści")
   --subtitle "..."            line under the cover title
   --dedication "..."          dedication at the bottom right of the cover
   --no-dedication             no dedication on the cover
@@ -85,6 +85,8 @@ function pdfOptionsFrom(flags: ParsedArgs['flags']): Partial<PdfOptions> {
     boldLyrics: bool(flags, 'bold'),
     lineHeight: num(flags, 'line-height'),
     title: str(flags, 'title'),
+    // Real glyph widths, so the chord column can sit right next to the lyrics.
+    measureText: measureRoboto(),
   };
 }
 
@@ -249,7 +251,10 @@ async function main(): Promise<void> {
   const skipped = allSongs.filter(song => !song.valid);
 
   for (const song of skipped) {
-    console.warn(`  ! skipped ${song.sourceFile}: ${song.warnings.join('; ')}`);
+    console.error(`  x skipped ${song.sourceFile}: ${song.errors.join(' ')}`);
+  }
+  if (skipped.length > 0) {
+    console.error('');
   }
 
   const ctx: Context = { root, assetsDir, historyPath, outputDir, songs };

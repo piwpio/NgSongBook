@@ -35,18 +35,34 @@ to jest linia 4|abDeGEGE
 to jest linia 5
 to jest linia 6
 
-ref. to jest linia 7
+{ref} to jest linia 7
 to jest linia 8
+
+to jest linia 9
+to jest linia 10
+
+{ref}
 ```
 
-**Nagłówek** — linie `{klucz}wartość` na początku pliku. Wszystkie są opcjonalne; bez
+**Nagłówek** — linie `{klucz}wartość` na początku pliku. `{ref}` nie jest kluczem
+nagłówka — jeśli piosenka zaczyna się od refrenu, parser poprawnie potraktuje go jako tekst. Wszystkie są opcjonalne; bez
 `{title}` tytuł brany jest z nazwy pliku. Obsługiwane klucze: `title`, `author`, `extra`.
 Liczba pustych linii między nagłówkiem a tekstem nie ma znaczenia.
 
 **Zwrotki** — oddzielone pustą linią. Zwrotka nigdy nie jest rozrywana między stronami.
 
-**Refren** — zwrotka, której pierwsza linia zaczyna się od `ref.`, `ref:`, `refren`
-lub `chorus`. Marker jest wycinany z tekstu, a blok dostaje wcięcie i pogrubioną etykietę.
+**Refren** — blok zaczynający się od `{ref}`:
+
+- `{ref} tekst refrenu` — tu refren jest zapisany. Marker nie trafia do druku,
+  blok dostaje wcięcie.
+- samo `{ref}` w osobnej linii — w tym miejscu refren jest powtarzany w całości,
+  razem z akordami. Nie trzeba go przepisywać.
+
+Akordy powtórzonego refrenu nie wpływają na to, co dziedziczą kolejne zwrotki —
+po powtórce obowiązują nadal akordy sprzed refrenu.
+
+Stary zapis (`ref.`, `refren`, `chorus`, `[ref]`) wciąż działa jako definicja refrenu, ale
+parser wypisuje ostrzeżenie — przestaw pliki na `{ref}`.
 
 **Akordy** — po znaku `|` na końcu linii. Kluczowa zasada:
 
@@ -121,6 +137,15 @@ jak przypis, dedykacja:
 
 Zmienia ją `--dedication "..."`, zdejmuje `--no-dedication`. Okładka nie ma numeru strony,
 ale liczy się do numeracji, więc numery w spisie treści zgadzają się z tymi na stronach.
+
+Domyślnie akordy idą w kolumnie obok tekstu. CLI mierzy tekst w tym samym foncie,
+który trafia do PDF-a (pdfkit + Roboto), i ustawia kolumnę tuż za najdłuższą linią
+**danej piosenki** — akordy są blisko słów, a mimo to tworzą równy pion. Gdy linia
+przekracza 78% szerokości kolumny, szerokość jest przycinana i najdłuższe linie się
+zawijają. `--chords above` daje wariant nad tekstem.
+
+Bez pomiaru (czyli w przeglądarce) kolumna wypada na stałym ułamku szerokości strony —
+`lyricsColumnRatio`, domyślnie 0.5.
 
 Komunikaty aplikacji i CLI są po angielsku; polskie zostają tylko tam, gdzie są treścią
 śpiewnika (tytuł okładki, dedykacja, teksty piosenek).

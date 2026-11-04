@@ -31,3 +31,28 @@ export function robotoFonts(): TFontDictionary {
     },
   };
 }
+
+/**
+ * Measures a string in Roboto, in points, using the very font that ends up in
+ * the PDF. Lets the layout place the chord column just past the longest line
+ * instead of guessing a fraction of the page.
+ */
+export function measureRoboto(): (text: string, fontSize: number, bold: boolean) => number {
+  /* eslint-disable @typescript-eslint/no-var-requires */
+  const PDFDocument = require('@foliojs-fork/pdfkit') as new (options: object) => {
+    registerFont: (name: string, src: Buffer) => void;
+    font: (name: string) => { fontSize: (size: number) => { widthOfString: (t: string) => number } };
+  };
+  /* eslint-enable @typescript-eslint/no-var-requires */
+
+  const fonts = robotoFonts()['Roboto'];
+  const doc = new PDFDocument({ autoFirstPage: false });
+  doc.registerFont('normal', fonts.normal as Buffer);
+  doc.registerFont('bold', fonts.bold as Buffer);
+
+  return (text, fontSize, bold) =>
+    doc
+      .font(bold ? 'bold' : 'normal')
+      .fontSize(fontSize)
+      .widthOfString(text);
+}

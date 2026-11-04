@@ -27,7 +27,7 @@ describe('SongService', () => {
     });
 
     http.expectOne('assets/__songs__.txt').flush('one.txt\n');
-    http.expectOne('assets/one.txt').flush('{title}Piosenka\n\n\nlinia 1|C\nlinia 2');
+    http.expectOne('assets/one.txt').flush('{title}Piosenka\n{author}Ktoś\n\n\nlinia 1|C\nlinia 2');
   });
 
   it('returns an empty list when nothing is listed', done => {

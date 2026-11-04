@@ -188,11 +188,12 @@
 }
 
 .chords {
+  // Black and bold, matching the PDF - the songbook is printed in black and white.
   display: block;
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.4px;
-  color: #1a4f8a;
+  letter-spacing: 0.6px;
+  color: #000;
   min-height: 14px;
 }
 

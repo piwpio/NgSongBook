@@ -1,5 +1,5 @@
-{author}Wykonawca piosenki
-{extra}info dodatkow np capo
+{title}Czwarta piosenka o wyjątkowo długim tytule
+{author}Wykonawca Czwarty
 
 
 to jest linia pierwsza|AaDeD

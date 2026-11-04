@@ -1,5 +1,6 @@
-{title}Tytuł piosenki
-{extra}info dodatkow np capo
+{title}Druga piosenka
+{author}Zespół Drugi
+{extra}capo 3
 
 
 to jest linia pierwsza|AaDeD

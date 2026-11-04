@@ -18,16 +18,15 @@ export function buildPrintDoc(songs: Song[], raw: Partial<PdfOptions> = {}): TDo
     content.push(
       ...buildSongContent(song, {
         ...options,
-        tocItem: false,
         pageBreak: index === 0 ? false : options.songPerPage,
-      })
+      }).content
     );
   });
 
   return {
     pageSize: options.pageSize,
     pageMargins: options.margins,
-    info: { title: `${options.title} - print set`, author: 'NgSongBook' },
+    info: { title: `${options.title} - do druku`, author: 'NgSongBook' },
     content,
     styles: buildStyles(options),
     defaultStyle: { font: 'Roboto', fontSize: options.lyricsFontSize },

@@ -1,5 +1,10 @@
 import { ChordNotation } from '../parser/chord-tokenizer';
 
+/**
+ * Everything that gets PRINTED is Polish - it is the content of a Polish
+ * songbook. English is for the code: CLI output, the app UI and warnings.
+ */
+
 export type PageSize = 'A4' | 'A5';
 
 /**
@@ -23,8 +28,19 @@ export interface PdfOptions {
   lineHeight: number;
   /** [left, top, right, bottom] */
   margins: [number, number, number, number];
-  /** Width (pt) of the chord column when `chordLayout` is `right`. */
-  chordColumnWidth: number;
+  /**
+   * Fallback width of the lyrics column, as a fraction of the content width,
+   * used when no `measureText` is available to find the real longest line.
+   */
+  lyricsColumnRatio: number;
+  /** Gap (pt) between the lyrics and the chord column. */
+  chordColumnGap: number;
+  /**
+   * Measures a string in the document font, in points. When provided, the chord
+   * column is placed just past the song's longest lyrics line instead of at a
+   * fixed fraction of the page. The Node CLI supplies this via pdfkit.
+   */
+  measureText?: (text: string, fontSize: number, bold: boolean) => number;
   /** Vertical gap (pt) between blocks (verses / choruses). */
   blockGap: number;
   /** Indentation (pt) of a chorus block. */
@@ -37,9 +53,10 @@ export interface PdfOptions {
 
 const BASE = {
   pageSize: 'A4' as PageSize,
-  chordLayout: 'above' as ChordLayout,
+  chordLayout: 'right' as ChordLayout,
   splitChords: true,
   chordNotation: 'pl' as ChordNotation,
+  lyricsColumnRatio: 0.5,
   boldLyrics: false,
   songPerPage: true,
   title: 'Śpiewnik Złotego',
@@ -55,7 +72,7 @@ function pageDefaults(pageSize: PageSize) {
         titleFontSize: 16,
         lineHeight: 1.18,
         margins: [30, 26, 30, 30] as [number, number, number, number],
-        chordColumnWidth: 95,
+        chordColumnGap: 14,
         blockGap: 7,
         chorusIndent: 10,
       }
@@ -65,7 +82,7 @@ function pageDefaults(pageSize: PageSize) {
         titleFontSize: 18,
         lineHeight: 1.25,
         margins: [45, 40, 45, 42] as [number, number, number, number],
-        chordColumnWidth: 130,
+        chordColumnGap: 18,
         blockGap: 9,
         chorusIndent: 14,
       };
@@ -81,4 +98,15 @@ export function resolvePdfOptions(overrides: Partial<PdfOptions> = {}): PdfOptio
     ...defined,
     pageSize,
   };
+}
+
+/** Page dimensions in points - pdfmake's own values. */
+export const PAGE_POINTS: Record<PageSize, { width: number; height: number }> = {
+  A4: { width: 595.28, height: 841.89 },
+  A5: { width: 419.53, height: 595.28 },
+};
+
+/** Usable width between the left and right margins. */
+export function contentWidth(options: PdfOptions): number {
+  return PAGE_POINTS[options.pageSize].width - options.margins[0] - options.margins[2];
 }
