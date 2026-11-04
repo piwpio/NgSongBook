@@ -96,7 +96,9 @@ npm run pdf:print -- --page-size A5 --bold --chords right
 | `--songs a.txt,b.txt`                           | ogranicz do wybranych plików                            |
 | `--out plik.pdf`                                | plik wyjściowy                                          |
 
-Tylko `book`: `--no-cover`, `--no-toc`, `--no-page-numbers`.
+Tylko `book`: `--no-cover`, `--no-toc`, `--no-page-numbers`,
+`--toc-title "Spis treści"`, `--subtitle "..."` (linia pod tytułem na okładce),
+`--dedication "..."` / `--no-dedication`.
 
 Tylko `print`: `--all` (ignoruj historię), `--include-changed` (dołącz zmienione),
 `--dry-run` (pokaż, nie generuj), `--no-mark` (nie zapisuj do historii),
@@ -107,6 +109,21 @@ Tylko `print`: `--all` (ignoruj historię), `--include-changed` (dołącz zmieni
 `src/assets/print-history.json` — komitowany plik z zapisem, co i kiedy poszło do druku.
 Dla każdej piosenki trzyma hash treści, więc po edycji tekstu `npm run pdf:history`
 pokaże ją jako `ZMIENIONA`, a `npm run pdf:print -- --include-changed` wydrukuje ponownie.
+
+---
+
+### Strona tytułowa
+
+Na środku tytuł (`--title`, domyślnie **Śpiewnik Złotego**), a przy dolnej krawędzi po prawej,
+jak przypis, dedykacja:
+
+> _Dla Irminy i Astrid, moich najwierniejszych fanek na dobre i złe_
+
+Zmienia ją `--dedication "..."`, zdejmuje `--no-dedication`. Okładka nie ma numeru strony,
+ale liczy się do numeracji, więc numery w spisie treści zgadzają się z tymi na stronach.
+
+Komunikaty aplikacji i CLI są po angielsku; polskie zostają tylko tam, gdzie są treścią
+śpiewnika (tytuł okładki, dedykacja, teksty piosenek).
 
 ---
 

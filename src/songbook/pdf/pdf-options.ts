@@ -42,7 +42,7 @@ const BASE = {
   chordNotation: 'pl' as ChordNotation,
   boldLyrics: false,
   songPerPage: true,
-  title: 'Śpiewnik',
+  title: 'Śpiewnik Złotego',
 };
 
 function pageDefaults(pageSize: PageSize) {

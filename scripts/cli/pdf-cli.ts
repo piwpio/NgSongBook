@@ -24,39 +24,43 @@ import { robotoFonts } from './fonts';
 import { HISTORY_FILE, ensureDir, findProjectRoot, loadSongs, timestampSlug } from './workspace';
 
 const USAGE = `
-Śpiewnik - generator PDF
+Songbook - PDF generator
 
-  npm run pdf:book            cały śpiewnik: okładka + klikalny spis treści + numery stron
-  npm run pdf:print           TYLKO piosenki jeszcze nie drukowane (bez spisu, bez numerów stron)
-  npm run pdf:history         co jest już wydrukowane, a co czeka
+  npm run pdf:book            full songbook: cover + clickable table of contents + page numbers
+  npm run pdf:print           ONLY songs not printed yet (no contents, no page numbers)
+  npm run pdf:history         what has been printed and what is still waiting
 
-Wspólne opcje:
-  --page-size A4|A5           format strony (domyślnie A4)
-  --chords above|right|none   akordy nad tekstem / w kolumnie po prawej / bez akordów
-  --no-split-chords           drukuj akordy dokładnie jak w pliku (AaDeD zamiast A  a  D  e  D)
-  --notation pl|intl          'pl' (domyślnie): b to osobny akord; 'intl': b po dźwięku to bemol
-  --font-size N               wielkość tekstu (A4: 11, A5: 12)
-  --chord-size N              wielkość akordów (A4: 9.5, A5: 10.5)
-  --title-size N              wielkość tytułu piosenki
-  --bold                      pogrubiony tekst piosenek (przydatne na A5)
-  --line-height N             interlinia (A4: 1.25, A5: 1.18)
-  --title "Mój śpiewnik"      tytuł dokumentu / okładki
-  --songs a.txt,b.txt         ogranicz do wybranych plików
-  --out ścieżka.pdf           plik wyjściowy
-  --assets katalog            katalog z piosenkami (domyślnie src/assets)
-  --history plik.json         plik historii wydruków (domyślnie src/assets/print-history.json)
+Common options:
+  --page-size A4|A5           page format (default A4)
+  --chords above|right|none   chords above the lyrics / in a right hand column / no chords
+  --no-split-chords           print chords exactly as written (AaDeD instead of A  a  D  e  D)
+  --notation pl|intl          'pl' (default): b is its own chord; 'intl': b after a root is a flat
+  --font-size N               lyrics size (A4: 11, A5: 12)
+  --chord-size N              chord size (A4: 9.5, A5: 10.5)
+  --title-size N              song title size
+  --bold                      bold lyrics (useful on A5)
+  --line-height N             line height (A4: 1.25, A5: 1.18)
+  --title "My songbook"       document / cover title
+  --songs a.txt,b.txt         limit to the given files
+  --out path.pdf              output file
+  --assets dir                songs directory (default src/assets)
+  --history file.json         print history file (default src/assets/print-history.json)
 
-Tylko 'book':
-  --no-cover                  bez strony tytułowej
-  --no-toc                    bez spisu treści
-  --no-page-numbers           bez numerów stron
+'book' only:
+  --no-cover                  no cover page
+  --no-toc                    no table of contents
+  --no-page-numbers           no page numbers
+  --toc-title "Contents"      heading above the table of contents
+  --subtitle "..."            line under the cover title
+  --dedication "..."          dedication at the bottom right of the cover
+  --no-dedication             no dedication on the cover
 
-Tylko 'print':
-  --all                       wygeneruj wszystko, ignorując historię
-  --include-changed           dołącz też piosenki zmienione od ostatniego druku
-  --dry-run                   pokaż co by poszło do druku, nie generuj i nie zapisuj historii
-  --no-mark                   wygeneruj PDF, ale NIE zapisuj do historii
-  --prune                     usuń z historii wpisy piosenek, których już nie ma
+'print' only:
+  --all                       generate everything, ignoring the history
+  --include-changed           also include songs edited since they were last printed
+  --dry-run                   list what would be printed, generate nothing, touch nothing
+  --no-mark                   generate the PDF but do NOT record it in the history
+  --prune                     drop history entries for songs that no longer exist
 `;
 
 function pdfOptionsFrom(flags: ParsedArgs['flags']): Partial<PdfOptions> {
@@ -64,10 +68,10 @@ function pdfOptionsFrom(flags: ParsedArgs['flags']): Partial<PdfOptions> {
   const pageSize = str(flags, 'page-size')?.toUpperCase() as PageSize | undefined;
 
   if (pageSize && pageSize !== 'A4' && pageSize !== 'A5') {
-    throw new Error(`Nieobsługiwany format strony: ${pageSize} (dozwolone: A4, A5)`);
+    throw new Error(`Unsupported page size: ${pageSize} (allowed: A4, A5)`);
   }
   if (chords && !['above', 'right', 'none'].includes(chords)) {
-    throw new Error(`Nieobsługiwany układ akordów: ${chords} (dozwolone: above, right, none)`);
+    throw new Error(`Unsupported chord layout: ${chords} (allowed: above, right, none)`);
   }
 
   return {
@@ -119,7 +123,7 @@ async function commandBook(args: ParsedArgs, ctx: Context): Promise<void> {
   const songs = ctx.songs.filter(song => !only || only.includes(song.sourceFile));
 
   if (songs.length === 0) {
-    console.error('Brak piosenek do wygenerowania.');
+    console.error('No songs to generate.');
     process.exitCode = 1;
     return;
   }
@@ -132,12 +136,14 @@ async function commandBook(args: ParsedArgs, ctx: Context): Promise<void> {
     toc: bool(args.flags, 'toc'),
     pageNumbers: bool(args.flags, 'page-numbers'),
     subtitle: str(args.flags, 'subtitle'),
+    tocTitle: str(args.flags, 'toc-title'),
+    dedication: bool(args.flags, 'dedication') === false ? null : str(args.flags, 'dedication'),
   });
 
   await writePdf(doc, outPath);
   reportWarnings(songs);
-  console.log(`\n  Śpiewnik (${songs.length} piosenek) -> ${path.relative(ctx.root, outPath)}`);
-  console.log('  Spis treści i numery stron przeliczone od nowa.\n');
+  console.log(`\n  Songbook (${songs.length} songs) -> ${path.relative(ctx.root, outPath)}`);
+  console.log('  Table of contents and page numbers recalculated from scratch.\n');
 }
 
 async function commandPrint(args: ParsedArgs, ctx: Context): Promise<void> {
@@ -149,19 +155,19 @@ async function commandPrint(args: ParsedArgs, ctx: Context): Promise<void> {
   });
 
   if (toPrint.length === 0) {
-    console.log('\n  Nic nowego do druku - wszystkie piosenki były już generowane.');
-    console.log('  (--include-changed dołączy zmienione, --all wygeneruje wszystko.)\n');
+    console.log('\n  Nothing new to print - every song has been generated before.');
+    console.log('  (--include-changed adds edited ones, --all regenerates everything.)\n');
     printStatusTable(statuses);
     return;
   }
 
-  console.log(`\n  Do druku (${toPrint.length}):`);
+  console.log(`\n  To print (${toPrint.length}):`);
   for (const song of toPrint) {
     console.log(`    + ${song.meta.title}  [${song.sourceFile}]`);
   }
 
   if (bool(args.flags, 'dry-run') === true) {
-    console.log('\n  --dry-run: nic nie wygenerowano, historia nietknięta.\n');
+    console.log('\n  --dry-run: nothing generated, history untouched.\n');
     return;
   }
 
@@ -170,10 +176,10 @@ async function commandPrint(args: ParsedArgs, ctx: Context): Promise<void> {
   const doc = buildPrintDoc(toPrint, pdfOptionsFrom(args.flags));
   await writePdf(doc, outPath);
   reportWarnings(toPrint);
-  console.log(`\n  PDF -> ${path.relative(ctx.root, outPath)}  (bez numerów stron, bez spisu)`);
+  console.log(`\n  PDF -> ${path.relative(ctx.root, outPath)}  (no page numbers, no contents)`);
 
   if (bool(args.flags, 'mark') === false) {
-    console.log('  --no-mark: historia NIE została zaktualizowana.\n');
+    console.log('  --no-mark: the history was NOT updated.\n');
     return;
   }
 
@@ -183,21 +189,21 @@ async function commandPrint(args: ParsedArgs, ctx: Context): Promise<void> {
   }
   ensureDir(path.dirname(ctx.historyPath));
   fs.writeFileSync(ctx.historyPath, serialiseHistory(updated), 'utf8');
-  console.log(`  Historia zapisana -> ${path.relative(ctx.root, ctx.historyPath)}\n`);
+  console.log(`  History saved -> ${path.relative(ctx.root, ctx.historyPath)}\n`);
 }
 
 function commandHistory(_args: ParsedArgs, ctx: Context): void {
   const history = readHistory(ctx.historyPath);
   const { statuses } = selectForPrint(ctx.songs, history, {});
-  console.log(`\n  Historia: ${path.relative(ctx.root, ctx.historyPath)}`);
+  console.log(`\n  History: ${path.relative(ctx.root, ctx.historyPath)}`);
   printStatusTable(statuses);
 }
 
 function printStatusTable(statuses: { song: Song; status: string }[]): void {
   const label: Record<string, string> = {
-    new: 'NOWA        ',
-    changed: 'ZMIENIONA   ',
-    printed: 'wydrukowana ',
+    new: 'NEW      ',
+    changed: 'CHANGED  ',
+    printed: 'printed  ',
   };
   console.log('');
   for (const { song, status } of statuses) {
@@ -208,9 +214,7 @@ function printStatusTable(statuses: { song: Song; status: string }[]): void {
     return acc;
   }, {});
   console.log(
-    `\n    razem ${statuses.length} | nowe ${counts['new'] ?? 0} | zmienione ${counts['changed'] ?? 0} | wydrukowane ${
-      counts['printed'] ?? 0
-    }\n`
+    `\n    total ${statuses.length} | new ${counts['new'] ?? 0} | changed ${counts['changed'] ?? 0} | printed ${counts['printed'] ?? 0}\n`
   );
 }
 
@@ -236,7 +240,7 @@ async function main(): Promise<void> {
   const outputDir = path.resolve(root, 'output');
 
   if (!fs.existsSync(assetsDir)) {
-    throw new Error(`Nie ma katalogu z piosenkami: ${assetsDir}`);
+    throw new Error(`Songs directory not found: ${assetsDir}`);
   }
 
   const notation = (str(args.flags, 'notation') as ChordNotation | undefined) ?? 'pl';
@@ -245,7 +249,7 @@ async function main(): Promise<void> {
   const skipped = allSongs.filter(song => !song.valid);
 
   for (const song of skipped) {
-    console.warn(`  ! pominięto ${song.sourceFile}: ${song.warnings.join('; ')}`);
+    console.warn(`  ! skipped ${song.sourceFile}: ${song.warnings.join('; ')}`);
   }
 
   const ctx: Context = { root, assetsDir, historyPath, outputDir, songs };
@@ -261,13 +265,13 @@ async function main(): Promise<void> {
       commandHistory(args, ctx);
       break;
     default:
-      console.error(`Nieznana komenda: ${args.command}`);
+      console.error(`Unknown command: ${args.command}`);
       console.log(USAGE);
       process.exitCode = 1;
   }
 }
 
 main().catch((error: unknown) => {
-  console.error(`\n  Błąd: ${error instanceof Error ? error.message : String(error)}\n`);
+  console.error(`\n  Error: ${error instanceof Error ? error.message : String(error)}\n`);
   process.exitCode = 1;
 });

@@ -1,7 +1,7 @@
 import { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 import { Song } from '../model/song.model';
 import { buildSongContent, buildStyles } from './song-content';
-import { PdfOptions, resolvePdfOptions } from './pdf-options';
+import { PageSize, PdfOptions, resolvePdfOptions } from './pdf-options';
 
 export interface SongbookDocOptions extends Partial<PdfOptions> {
   /** Cover page with the songbook title. Default: true. */
@@ -12,6 +12,10 @@ export interface SongbookDocOptions extends Partial<PdfOptions> {
   pageNumbers?: boolean;
   /** Shown on the cover, e.g. a generation date. */
   subtitle?: string;
+  /** Heading above the table of contents. Default: 'Contents'. */
+  tocTitle?: string;
+  /** Dedication pinned to the bottom right of the cover. `null` removes it. */
+  dedication?: string | null;
 }
 
 /**
@@ -28,13 +32,13 @@ export function buildSongbookDoc(songs: Song[], raw: SongbookDocOptions = {}): T
   const content: Content[] = [];
 
   if (withCover) {
-    content.push(...buildCover(options, raw.subtitle, songs.length));
+    content.push(...buildCover(options, raw));
   }
 
   if (withToc) {
     content.push({
       toc: {
-        title: { text: 'Spis treści', style: 'tocTitle' },
+        title: { text: raw.tocTitle ?? 'Contents', style: 'tocTitle' },
         textStyle: 'tocEntry',
         numberStyle: 'tocNumber',
       },
@@ -63,7 +67,9 @@ export function buildSongbookDoc(songs: Song[], raw: SongbookDocOptions = {}): T
     ...(withPageNumbers
       ? {
           footer: (currentPage: number, pageCount: number) => ({
-            text: `${currentPage} / ${pageCount}`,
+            // The cover carries no number, but it still counts - so the numbers
+            // printed here always match the ones in the table of contents.
+            text: withCover && currentPage === 1 ? '' : `${currentPage} / ${pageCount}`,
             alignment: 'center',
             style: 'footer',
             margin: [0, 10, 0, 0],
@@ -73,26 +79,36 @@ export function buildSongbookDoc(songs: Song[], raw: SongbookDocOptions = {}): T
   };
 }
 
-function buildCover(options: PdfOptions, subtitle: string | undefined, count: number): Content[] {
-  return [
+/** Page size in points - pdfmake's own values, needed to pin the dedication. */
+const PAGE_POINTS: Record<PageSize, { width: number; height: number }> = {
+  A4: { width: 595.28, height: 841.89 },
+  A5: { width: 419.53, height: 595.28 },
+};
+
+export const DEFAULT_DEDICATION = 'Dla Irminy i Astrid, moich najwierniejszych fanek na dobre i złe';
+
+function buildCover(options: PdfOptions, raw: SongbookDocOptions): Content[] {
+  const content: Content[] = [
     { text: '', margin: [0, options.pageSize === 'A5' ? 110 : 190, 0, 0] },
     { text: options.title, style: 'coverTitle' },
-    {
-      text: subtitle ?? `${count} ${pluralSongs(count)}`,
-      style: 'coverSubtitle',
-      margin: [0, 10, 0, 0],
-    },
   ];
-}
 
-function pluralSongs(count: number): string {
-  if (count === 1) {
-    return 'piosenka';
+  if (raw.subtitle) {
+    content.push({ text: raw.subtitle, style: 'coverSubtitle', margin: [0, 10, 0, 0] });
   }
-  const lastTwo = count % 100;
-  const last = count % 10;
-  if (lastTwo >= 12 && lastTwo <= 14) {
-    return 'piosenek';
+
+  const dedication = raw.dedication === undefined ? DEFAULT_DEDICATION : raw.dedication;
+  if (dedication) {
+    const page = PAGE_POINTS[options.pageSize];
+    const [left, , right, bottom] = options.margins;
+    const textWidth = (page.width - left - right) * 0.6;
+
+    content.push({
+      // Pinned to the bottom right of the cover, the way a footnote sits.
+      absolutePosition: { x: page.width - right - textWidth, y: page.height - bottom - 34 },
+      columns: [{ text: dedication, style: 'coverDedication', width: textWidth }],
+    });
   }
-  return last >= 2 && last <= 4 ? 'piosenki' : 'piosenek';
+
+  return content;
 }

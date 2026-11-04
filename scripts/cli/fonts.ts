@@ -17,7 +17,7 @@ export function robotoFonts(): TFontDictionary {
   const load = (name: string): Buffer => {
     const base64 = vfs[name];
     if (!base64) {
-      throw new Error(`Nie znaleziono fontu ${name} w pdfmake/build/vfs_fonts.js`);
+      throw new Error(`Font ${name} not found in pdfmake/build/vfs_fonts.js`);
     }
     return Buffer.from(base64, 'base64');
   };

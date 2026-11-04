@@ -1,65 +1,63 @@
 <header class="topbar">
-  <h1>Śpiewnik</h1>
-  <p class="muted">{{ songs.length }} piosenek &middot; {{ pending.length }} czeka na druk</p>
+  <h1>Songbook</h1>
+  <p class="muted">{{ songs.length }} songs &middot; {{ pending.length }} waiting to be printed</p>
 </header>
 
 <section class="panel">
   <div class="options">
     <label>
-      Format
+      Page size
       <select [(ngModel)]="pageSize">
         <option value="A4">A4</option>
-        <option value="A5">A5 (większa czcionka)</option>
+        <option value="A5">A5 (larger type)</option>
       </select>
     </label>
 
     <label>
-      Akordy
+      Chords
       <select [(ngModel)]="chordLayout">
-        <option value="above">nad tekstem</option>
-        <option value="right">kolumna po prawej</option>
-        <option value="none">bez akordów</option>
+        <option value="above">above the lyrics</option>
+        <option value="right">right hand column</option>
+        <option value="none">no chords</option>
       </select>
     </label>
 
     <label class="check">
       <input type="checkbox" [(ngModel)]="boldLyrics" />
-      pogrubiony tekst
+      bold lyrics
     </label>
 
     <label class="check">
       <input type="checkbox" [(ngModel)]="splitChords" />
-      rozdzielaj akordy (A a D e D)
+      split chords (A a D e D)
     </label>
 
     <label class="check">
       <input type="checkbox" [(ngModel)]="includeChanged" />
-      do druku też zmienione
+      include edited songs
     </label>
 
     <label>
-      Tytuł śpiewnika
+      Songbook title
       <input type="text" [(ngModel)]="bookTitle" />
     </label>
   </div>
 
   <div class="actions">
-    <button type="button" class="primary" [disabled]="songs.length === 0" (click)="generateSongbook()">Generuj cały śpiewnik (PDF)</button>
-    <button type="button" [disabled]="pending.length === 0" (click)="generatePrintSet()">
-      Generuj piosenki do druku ({{ pending.length }})
-    </button>
-    <button type="button" class="ghost" (click)="downloadHistory()">Pobierz print-history.json</button>
-    <button type="button" class="ghost" (click)="resetLocalHistory()">Wyczyść lokalną historię</button>
+    <button type="button" class="primary" [disabled]="songs.length === 0" (click)="generateSongbook()">Generate full songbook (PDF)</button>
+    <button type="button" [disabled]="pending.length === 0" (click)="generatePrintSet()">Generate print set ({{ pending.length }})</button>
+    <button type="button" class="ghost" (click)="downloadHistory()">Download print-history.json</button>
+    <button type="button" class="ghost" (click)="resetLocalHistory()">Clear local history</button>
   </div>
 
   <p class="hint">
-    Cały śpiewnik ma okładkę, klikalny spis treści i numery stron. Zestaw do druku nie ma ani spisu, ani numerów stron &ndash; i zawiera
-    tylko piosenki jeszcze niedrukowane. Zapisuje się w tej przeglądarce; żeby utrwalić to w repo, pobierz <code>print-history.json</code> i
-    podmień plik w <code>src/assets/</code> (albo użyj <code>npm run pdf:print</code>).
+    The full songbook has a cover, a clickable table of contents and page numbers. The print set has neither contents nor page numbers
+    &ndash; and holds only the songs that have not been printed yet. It is recorded in this browser; to keep it in the repo, download
+    <code>print-history.json</code> and replace the file in <code>src/assets/</code> (or use <code>npm run pdf:print</code>).
   </p>
 </section>
 
-<p *ngIf="loading" class="muted">Wczytywanie piosenek&hellip;</p>
+<p *ngIf="loading" class="muted">Loading songs&hellip;</p>
 <p *ngIf="error" class="error">{{ error }}</p>
 
 <ol class="songs">

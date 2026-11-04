@@ -26,7 +26,7 @@ export function parseSong(raw: string, sourceFile = '', options: ParseSongOption
 
   const title = meta['title'] ?? options.fallbackTitle ?? prettifyFileName(sourceFile);
   if (!meta['title']) {
-    warnings.push('Brak {title} - tytuł wzięty z nazwy pliku.');
+    warnings.push('No {title} - the title was taken from the file name.');
   }
 
   const songMeta: SongMeta = { title };
@@ -39,7 +39,7 @@ export function parseSong(raw: string, sourceFile = '', options: ParseSongOption
 
   const blocks = parseBlocks(rest, notation);
   if (blocks.length === 0) {
-    warnings.push('Piosenka nie zawiera żadnego tekstu.');
+    warnings.push('The song has no lyrics.');
   }
 
   return {
@@ -86,7 +86,7 @@ function readMeta(lines: string[], warnings: string[]): { meta: Record<string, s
     const key = match[1].toLowerCase();
     const value = match[2].trim();
     if (!(SONG_FORMAT.knownMetaKeys as readonly string[]).includes(key)) {
-      warnings.push(`Nieznany klucz meta: {${key}}`);
+      warnings.push(`Unknown meta key: {${key}}`);
     }
     if (value) {
       meta[key] = value;
@@ -153,7 +153,7 @@ function parseBlocks(lines: string[], notation: ChordNotation): SongBlock[] {
 export function prettifyFileName(fileName: string): string {
   const base = fileName.replace(/^.*[\\/]/, '').replace(/\.[^.]+$/, '');
   if (!base) {
-    return 'Bez tytułu';
+    return 'Untitled';
   }
   const spaced = base.replace(/[_-]+/g, ' ').trim();
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);

@@ -27,12 +27,12 @@ export class AppComponent implements OnInit {
   boldLyrics = false;
   splitChords = true;
   includeChanged = false;
-  bookTitle = 'Śpiewnik';
+  bookTitle = 'Śpiewnik Złotego';
 
   readonly statusLabel: Record<PrintStatus, string> = {
-    new: 'nowa',
-    changed: 'zmieniona',
-    printed: 'wydrukowana',
+    new: 'new',
+    changed: 'changed',
+    printed: 'printed',
   };
 
   constructor(
@@ -55,7 +55,7 @@ export class AppComponent implements OnInit {
         this.refreshRows();
       },
       error: (err: unknown) => {
-        this.error = err instanceof Error ? err.message : 'Nie udało się wczytać piosenek.';
+        this.error = err instanceof Error ? err.message : 'Could not load the songs.';
         this.loading = false;
         this.cdr.markForCheck();
       },
@@ -67,11 +67,7 @@ export class AppComponent implements OnInit {
   }
 
   async generateSongbook(): Promise<void> {
-    await this.pdf.openSongbook(this.songs, {
-      ...this.pdfOptions(),
-      title: this.bookTitle,
-      subtitle: `${this.songs.length} piosenek · ${new Date().toLocaleDateString('pl-PL')}`,
-    });
+    await this.pdf.openSongbook(this.songs, { ...this.pdfOptions(), title: this.bookTitle });
   }
 
   async generatePrintSet(): Promise<void> {
