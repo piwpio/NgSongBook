@@ -29,8 +29,8 @@ not grow it without being asked.
 ## Commands
 
 ```bash
-npm run pdf:book      # full songbook: cover, clickable contents, page numbers
-npm run pdf:print     # only songs not printed yet: cover + songs, no numbers
+npm run pdf:book      # full songbook -> output/zloty_songbook_YYYY-MM-DD.pdf
+npm run pdf:print     # next batch for the binder -> output/printN.pdf
 npm run pdf:history   # what has been printed, what is waiting
 npm run pdf:test      # songbook built from test-songs/
 npm run pdf -- help   # every flag
@@ -94,6 +94,13 @@ so page numbers are still filled in after layout. Two traps live here: the
 first line of the cell only and a wrapped placeholder leaves an orphan `00`; and
 the dot leader is _text_, not a drawn rule, because pdfmake wraps each word in its
 own link annotation and a graphical leader left the middle of the row unclickable.
+
+**Print batches are numbered, not dated** - print1.pdf, print2.pdf. The number in
+the file name IS the number in data/print-history.json: `batches` counts the runs,
+each entry carries the `batch` it went out in. The counter lives in the committed
+history, never derived from whatever happens to be sitting in output/. A run that
+does not record itself (--no-mark) cannot claim a number, so it is written as
+printN_preview.pdf instead.
 
 **The print set has no page numbers** and never will: the binder grows batch by
 batch, so numbering would be wrong the moment the next batch is generated. It does

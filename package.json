@@ -15,7 +15,7 @@
     "pdf:print": "npm run pdf --silent -- print",
     "pdf:history": "npm run pdf --silent -- history",
     "test:watch": "jest --watch",
-    "pdf:test": "npm run pdf --silent -- book --songs-dir test-songs --out output/test-spiewnik.pdf",
+    "pdf:test": "npm run pdf --silent -- book --songs-dir test-songs --out output/test_songbook.pdf",
     "songs:index": "node scripts/build-songs-index.js",
     "prestart": "npm run songs:index --silent",
     "prebuild": "npm run songs:index --silent"

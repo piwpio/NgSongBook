@@ -143,8 +143,8 @@ nie bemol; `--notation intl` przełącza na międzynarodową, gdzie `Ab` to As-d
 ## CLI
 
 ```bash
-npm run pdf:book          # cały śpiewnik -> output/spiewnik-RRRR-MM-DD.pdf
-npm run pdf:print         # tylko nowe piosenki -> output/do-druku-RRRR-MM-DD.pdf
+npm run pdf:book          # cały śpiewnik -> output/zloty_songbook_RRRR-MM-DD.pdf
+npm run pdf:print         # tylko nowe piosenki -> output/printN.pdf
 npm run pdf:history       # co jest wydrukowane, a co czeka
 npm run pdf:test          # śpiewnik z plików testowych w test-songs/
 npm run pdf -- help       # pełna lista opcji
@@ -183,6 +183,16 @@ Tylko `print`: `--no-cover` (bez strony tytułowej), `--all` (ignoruj historię)
 Zestaw do druku zaczyna się stroną tytułową i jest ona drukowana **zawsze**, choćby
 partia liczyła jedną piosenkę — dzięki temu zniszczoną okładkę w segregatorze wymieniasz
 na świeżą bez generowania całego śpiewnika. `--no-cover` ją pomija.
+
+Partie do druku są **numerowane**, nie datowane: pierwszy wydruk to `print1.pdf`, drugi
+`print2.pdf` i tak dalej. Numer w nazwie pliku to **dokładnie ten sam numer**, który siedzi
+w `data/print-history.json` — pole `batches` mówi, ile partii poszło, a każda piosenka ma
+przy sobie `batch` z numerem swojej partii. Dzięki temu z samej nazwy pliku wiesz, co
+w nim jest, i odwrotnie.
+
+Licznik żyje w historii, a nie jest zgadywany z plików w `output/` — ten katalog jest
+odtwarzalny i możesz go skasować, kiedy chcesz. Wydruk zrobiony z `--no-mark` nie zapisuje
+się w historii, więc nie zajmuje numeru i dostaje nazwę `printN_preview.pdf`.
 
 `data/print-history.json` — komitowany plik z zapisem, co i kiedy poszło do druku.
 Dla każdej piosenki trzyma hash treści, więc po edycji tekstu `npm run pdf:history`

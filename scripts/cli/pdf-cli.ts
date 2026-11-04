@@ -13,6 +13,7 @@ import {
   buildSongbookDoc,
   emptyHistory,
   markPrinted,
+  nextBatchNumber,
   parseHistory,
   pruneHistory,
   selectForPrint,
@@ -133,7 +134,7 @@ async function commandBook(args: ParsedArgs, ctx: Context): Promise<void> {
     return;
   }
 
-  const outPath = str(args.flags, 'out') ?? path.join(ctx.outputDir, `spiewnik-${timestampSlug()}.pdf`);
+  const outPath = str(args.flags, 'out') ?? path.join(ctx.outputDir, `zloty_songbook_${timestampSlug()}.pdf`);
 
   const doc = buildSongbookDoc(songs, {
     ...pdfOptionsFrom(args.flags),
@@ -153,6 +154,10 @@ async function commandBook(args: ParsedArgs, ctx: Context): Promise<void> {
 
 async function commandPrint(args: ParsedArgs, ctx: Context): Promise<void> {
   const history = readHistory(ctx.historyPath);
+  // Batches are numbered, not dated: the binder grows batch by batch and the
+  // number is what tells you which sheets you have already carried over. The
+  // counter lives in the committed history, so deleting output/ cannot lose it.
+  const batch = nextBatchNumber(history);
   const { toPrint, statuses } = selectForPrint(ctx.songs, history, {
     all: bool(args.flags, 'all') === true,
     includeChanged: bool(args.flags, 'include-changed') === true,
@@ -166,7 +171,7 @@ async function commandPrint(args: ParsedArgs, ctx: Context): Promise<void> {
     return;
   }
 
-  console.log(`\n  To print (${toPrint.length}):`);
+  console.log(`\n  Batch ${batch} - to print (${toPrint.length}):`);
   for (const song of toPrint) {
     console.log(`    + ${song.meta.title}  [${song.sourceFile}]`);
   }
@@ -176,7 +181,11 @@ async function commandPrint(args: ParsedArgs, ctx: Context): Promise<void> {
     return;
   }
 
-  const outPath = str(args.flags, 'out') ?? path.join(ctx.outputDir, `do-druku-${timestampSlug()}.pdf`);
+  // printN.pdf always means batch N in data/print-history.json. A run that
+  // does not record itself cannot claim the number, so it is marked a preview.
+  const recording = bool(args.flags, 'mark') !== false;
+  const defaultName = recording ? `print${batch}.pdf` : `print${batch}_preview.pdf`;
+  const outPath = str(args.flags, 'out') ?? path.join(ctx.outputDir, defaultName);
 
   const doc = buildPrintDoc(toPrint, {
     ...pdfOptionsFrom(args.flags),
@@ -188,8 +197,8 @@ async function commandPrint(args: ParsedArgs, ctx: Context): Promise<void> {
   reportWarnings(toPrint);
   console.log(`\n  PDF -> ${path.relative(ctx.root, outPath)}  (no page numbers, no contents)`);
 
-  if (bool(args.flags, 'mark') === false) {
-    console.log('  --no-mark: the history was NOT updated.\n');
+  if (!recording) {
+    console.log(`  --no-mark: history untouched, so batch ${batch} is still free.\n`);
     return;
   }
 
@@ -199,7 +208,7 @@ async function commandPrint(args: ParsedArgs, ctx: Context): Promise<void> {
   }
   ensureDir(path.dirname(ctx.historyPath));
   fs.writeFileSync(ctx.historyPath, serialiseHistory(updated), 'utf8');
-  console.log(`  History saved -> ${path.relative(ctx.root, ctx.historyPath)}\n`);
+  console.log(`  History saved -> ${path.relative(ctx.root, ctx.historyPath)}  (batch ${batch})\n`);
 }
 
 function commandHistory(_args: ParsedArgs, ctx: Context): void {

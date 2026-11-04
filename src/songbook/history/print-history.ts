@@ -9,10 +9,18 @@ export interface PrintHistoryEntry {
   firstPrintedAt: string;
   lastPrintedAt: string;
   printCount: number;
+  /** Which batch the song last went out in - the N in printN.pdf. */
+  batch: number;
 }
 
 export interface PrintHistory {
   version: 1;
+  /**
+   * How many batches have been printed. The counter lives here, in the
+   * committed history, rather than being guessed from the files in output/ -
+   * that folder is derived and may be deleted at any time.
+   */
+  batches: number;
   entries: Record<string, PrintHistoryEntry>;
 }
 
@@ -24,7 +32,12 @@ export interface PrintSelection {
 }
 
 export function emptyHistory(): PrintHistory {
-  return { version: 1, entries: {} };
+  return { version: 1, batches: 0, entries: {} };
+}
+
+/** The number the next batch will carry, printed or not. */
+export function nextBatchNumber(history: PrintHistory): number {
+  return (history.batches ?? 0) + 1;
 }
 
 /**
@@ -85,6 +98,7 @@ export function selectForPrint(
 /** Returns a NEW history with the given songs recorded as printed. */
 export function markPrinted(history: PrintHistory, songs: Song[], now: Date = new Date()): PrintHistory {
   const timestamp = now.toISOString();
+  const batch = nextBatchNumber(history);
   const entries: Record<string, PrintHistoryEntry> = { ...history.entries };
 
   for (const song of songs) {
@@ -97,10 +111,11 @@ export function markPrinted(history: PrintHistory, songs: Song[], now: Date = ne
       firstPrintedAt: previous?.firstPrintedAt ?? timestamp,
       lastPrintedAt: timestamp,
       printCount: (previous?.printCount ?? 0) + 1,
+      batch,
     };
   }
 
-  return { version: 1, entries };
+  return { version: 1, batches: batch, entries };
 }
 
 /** Drops entries for songs that no longer exist. */
@@ -112,7 +127,7 @@ export function pruneHistory(history: PrintHistory, songs: Song[]): PrintHistory
       entries[key] = entry;
     }
   }
-  return { version: 1, entries };
+  return { version: 1, batches: history.batches ?? 0, entries };
 }
 
 export function parseHistory(json: string | null | undefined): PrintHistory {
@@ -124,7 +139,7 @@ export function parseHistory(json: string | null | undefined): PrintHistory {
     if (!parsed || typeof parsed !== 'object' || !parsed.entries) {
       return emptyHistory();
     }
-    return { version: 1, entries: parsed.entries };
+    return { version: 1, batches: parsed.batches ?? 0, entries: parsed.entries };
   } catch {
     return emptyHistory();
   }
@@ -136,5 +151,5 @@ export function serialiseHistory(history: PrintHistory): string {
   for (const key of sortedKeys) {
     entries[key] = history.entries[key];
   }
-  return `${JSON.stringify({ version: 1, entries }, null, 2)}\n`;
+  return `${JSON.stringify({ version: 1, batches: history.batches ?? 0, entries }, null, 2)}\n`;
 }
