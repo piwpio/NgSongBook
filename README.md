@@ -85,11 +85,41 @@ nadal mają akordy sprzed niego.
 - samo `{ref}` w osobnej linii — w tym miejscu refren jest powtarzany w całości,
   razem z akordami. Nie trzeba go przepisywać.
 
+Jeśli piosenka ma **więcej niż jeden refren**, numerujesz je: `{ref1}`, `{ref2}`, `{ref5}` —
+numery nie muszą iść po kolei, liczy się tylko to, że dany numer oznacza zawsze ten sam
+refren. Marker z tekstem zapisuje go, sam marker przywołuje z powrotem, i możesz wracać
+do wcześniejszego numeru po tym, jak zapiszesz kolejny:
+
+```
+{ref1}pierwszy refren|G
+
+zwrotka
+
+{ref1}
+
+{ref2}inny refren na koniec zwrotki|a
+
+{ref1}
+```
+
+`{ref}` bez numeru to **osobny** refren, nie synonim `{ref1}` — jeśli w jednej piosence
+użyjesz obu, parser to zgłosi zamiast po cichu je sklejać.
+
+Walidacja refrenów:
+
+| sytuacja                                  | reakcja                                   |
+| ----------------------------------------- | ----------------------------------------- |
+| przywołanie numeru, którego nie zapisałeś | **błąd** — piosenka nie trafia do PDF-a   |
+| ten sam numer zapisany dwa razy           | **błąd** — refren wolno zapisać tylko raz |
+| `{ref007}` i `{ref7}`                     | ten sam refren                            |
+
 Akordy powtórzonego refrenu nie wpływają na to, co dziedziczą kolejne zwrotki —
 po powtórce obowiązują nadal akordy sprzed refrenu.
 
-Stary zapis (`ref.`, `refren`, `chorus`, `[ref]`) wciąż działa jako definicja refrenu, ale
-parser wypisuje ostrzeżenie — przestaw pliki na `{ref}`.
+**Nawiasy kwadratowe** działają dla każdego tagu — `[title]`, `[author]`, `[extra]`,
+`[chords]`, `[ref1]` — ale parser wypisuje na to jedno ostrzeżenie na piosenkę.
+Klamry są formą właściwą. Refren zapisany słowem (`ref.`, `refren`, `chorus`) też
+jeszcze działa, z osobnym ostrzeżeniem.
 
 **Akordy** — po znaku `|` na końcu linii. Kluczowa zasada:
 

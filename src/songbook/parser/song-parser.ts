@@ -1,24 +1,35 @@
-import { Song, SongBlock, SongBlockKind, SongMeta } from '../model/song.model';
+import { Song, SongBlock, SongMeta } from '../model/song.model';
 import { ChordNotation, tokenizeChords } from './chord-tokenizer';
 
 export const SONG_FORMAT = {
-  /** `{title}...`, `{author}...`, `{extra}...` - one per line, at the top of the file. */
-  metaLine: /^\s*\{([a-zA-Z][\w-]*)\}[ \t]?(.*)$/,
+  /**
+   * `{title}...`, `{author}...`, `{extra}...` - one per line, at the top of the
+   * file. Square brackets are accepted for every tag too, with a warning.
+   */
+  metaLine: /^\s*(?:\{([a-zA-Z][\w-]*)\}|\[([a-zA-Z][\w-]*)\])[ \t]?(.*)$/,
   /** Everything after the first `|` on a lyrics line is the chord string. */
   chordSeparator: '|',
-  /** `{ref}` followed by lyrics - the block that defines the chorus. */
-  chorusMarker: /^\{ref}\s*/i,
-  /** A line holding nothing but `{ref}` - print the chorus again here. */
-  chorusRepeat: /^\{ref}$/i,
+  /**
+   * `{ref}` opens a chorus; `{ref1}`, `{ref5}`, ... are separate choruses in
+   * the same song. With lyrics after it the marker WRITES OUT that chorus,
+   * alone on its line it REPEATS the one written out under that number.
+   *
+   * Numbers need not run in order, and `{ref}` is a chorus of its own - NOT a
+   * synonym for `{ref1}`. Mixing the two in one song is a mistake worth
+   * hearing about rather than quietly aliasing.
+   */
+  chorusMarker: /^\{ref(\d*)}\s*/i,
+  /** The same marker in square brackets - accepted, warned about. */
+  chorusMarkerBrackets: /^\[ref(\d*)]\s*/i,
+  /** Spelled out as a word, from before the tag syntax - accepted, warned about. */
+  chorusMarkerWord: /^(?:ref|refren|refr|chorus)(\d*)(?:\.|:|\s|$)\s*/i,
   /** `{chords}` followed by chords - an instrumental line with no lyrics. */
-  chordsLine: /^\{chords}\s*/i,
-  /** Pre-`{ref}` spellings, still accepted as a definition but warned about. */
-  legacyChorusMarker: /^(\[ref]|ref|refren|refr|chorus)(\.|:|\s|$)\s*/i,
+  chordsLine: /^(?:\{chords}|\[chords])\s*/i,
   /**
    * Keys that look like meta but are not: they open the body of the song, so
-   * the meta scan has to stop when it meets one.
+   * the meta scan has to stop when it meets one. `ref`, `ref1`, `ref2`, ...
    */
-  bodyMarkerKeys: ['ref', 'chords'] as const,
+  bodyMarkerKey: /^(?:ref\d*|chords)$/i,
   knownMetaKeys: ['title', 'author', 'extra'] as const,
 } as const;
 
@@ -53,7 +64,7 @@ export function parseSong(raw: string, sourceFile = '', options: ParseSongOption
     songMeta.extra = meta['extra'];
   }
 
-  const blocks = parseBlocks(rest, notation, warnings);
+  const blocks = parseBlocks(rest, notation, warnings, errors);
   if (blocks.length === 0) {
     errors.push('The song has no lyrics.');
   }
@@ -65,8 +76,9 @@ export function parseSong(raw: string, sourceFile = '', options: ParseSongOption
     blocks,
     raw,
     valid: errors.length === 0,
-    errors,
-    warnings,
+    // The same remark can be triggered by many lines; say it once.
+    errors: [...new Set(errors)],
+    warnings: [...new Set(warnings)],
   };
 }
 
@@ -100,12 +112,15 @@ function readMeta(lines: string[], warnings: string[]): { meta: Record<string, s
     if (!match) {
       break;
     }
-    const key = match[1].toLowerCase();
-    if ((SONG_FORMAT.bodyMarkerKeys as readonly string[]).includes(key)) {
-      // `{ref}` / `{chords}` look like meta lines but they open the body.
+    const key = (match[1] ?? match[2]).toLowerCase();
+    if (match[2] !== undefined) {
+      warnings.push(BRACKET_WARNING);
+    }
+    if (SONG_FORMAT.bodyMarkerKey.test(key)) {
+      // `{ref}`, `{ref2}`, `{chords}` look like meta lines but open the body.
       break;
     }
-    const value = match[2].trim();
+    const value = match[3].trim();
     if (!(SONG_FORMAT.knownMetaKeys as readonly string[]).includes(key)) {
       warnings.push(`Unknown meta key: {${key}}`);
     }
@@ -117,37 +132,90 @@ function readMeta(lines: string[], warnings: string[]): { meta: Record<string, s
   return { meta, rest: lines.slice(index) };
 }
 
-function parseBlocks(lines: string[], notation: ChordNotation, warnings: string[]): SongBlock[] {
+type TagSyntax = 'braces' | 'brackets' | 'word';
+
+interface ChorusMarker {
+  /** Which chorus: '' for a bare `{ref}`, otherwise the number written. */
+  key: string;
+  /** What follows the marker - empty means "repeat", non-empty means "write out". */
+  rest: string;
+  syntax: TagSyntax;
+}
+
+/** `{ref007}` and `{ref7}` are the same chorus; `{ref}` is its own. */
+function chorusKeyOf(digits: string): string {
+  return digits ? String(Number(digits)) : '';
+}
+
+function chorusLabel(key: string): string {
+  return key ? `{ref${key}}` : '{ref}';
+}
+
+function matchChorusMarker(line: string): ChorusMarker | null {
+  const forms: [RegExp, TagSyntax][] = [
+    [SONG_FORMAT.chorusMarker, 'braces'],
+    [SONG_FORMAT.chorusMarkerBrackets, 'brackets'],
+    [SONG_FORMAT.chorusMarkerWord, 'word'],
+  ];
+
+  for (const [pattern, syntax] of forms) {
+    const match = pattern.exec(line);
+    if (match) {
+      return {
+        key: chorusKeyOf(match[1]),
+        rest: line.slice(match[0].length).trim(),
+        syntax,
+      };
+    }
+  }
+  return null;
+}
+
+function noteSyntax(syntax: TagSyntax, warnings: string[]): void {
+  if (syntax === 'brackets') {
+    warnings.push(BRACKET_WARNING);
+  } else if (syntax === 'word') {
+    warnings.push(WORD_CHORUS_WARNING);
+  }
+}
+
+function parseBlocks(lines: string[], notation: ChordNotation, warnings: string[], errors: string[]): SongBlock[] {
   const blocks: SongBlock[] = [];
   let current: SongBlock | null = null;
-  /** The chorus as written, so a bare `[ref]` can print it again. */
-  let chorus: SongBlock | null = null;
+  /** Every chorus written out so far, by number, so `{ref2}` can come back. */
+  const choruses = new Map<string, SongBlock>();
   /** Chords carry over line after line, and across blocks, until replaced. */
   let lastChords = '';
 
   const closeBlock = () => {
     if (current && current.lines.length > 0) {
       blocks.push(current);
-      if (current.kind === 'chorus' && !current.isRepeat) {
-        chorus = current;
+      if (current.kind === 'chorus' && !current.isRepeat && current.chorusKey !== undefined) {
+        choruses.set(current.chorusKey, current);
       }
     }
     current = null;
   };
 
   for (const rawLine of lines) {
-    if (rawLine.trim() === '') {
+    const trimmed = rawLine.trim();
+
+    if (trimmed === '') {
       closeBlock();
       continue;
     }
 
-    // A line that is only `[ref]` is not lyrics - it repeats the chorus.
-    if (SONG_FORMAT.chorusRepeat.test(rawLine.trim())) {
+    const marker = matchChorusMarker(trimmed);
+
+    // A marker alone on its line is not lyrics - it prints that chorus again.
+    if (marker && marker.rest === '') {
       closeBlock();
-      if (chorus) {
-        blocks.push(repeatOf(chorus));
+      noteSyntax(marker.syntax, warnings);
+      const defined = choruses.get(marker.key);
+      if (defined) {
+        blocks.push(repeatOf(defined));
       } else {
-        warnings.push('{ref} used before the chorus was written out - skipped.');
+        errors.push(`${chorusLabel(marker.key)} is used before it is written out.`);
       }
       continue;
     }
@@ -155,9 +223,12 @@ function parseBlocks(lines: string[], notation: ChordNotation, warnings: string[
     // `{chords}` is a passage with no words - an intro, a bridge, an interlude.
     // It does NOT touch the running chords: whatever follows still inherits the
     // chords of the last line that had lyrics.
-    const chordsMatch = SONG_FORMAT.chordsLine.exec(rawLine.trim());
+    const chordsMatch = SONG_FORMAT.chordsLine.exec(trimmed);
     if (chordsMatch) {
-      const rest = rawLine.trim().slice(chordsMatch[0].length).trim();
+      if (chordsMatch[0].startsWith('[')) {
+        warnings.push(BRACKET_WARNING);
+      }
+      const rest = trimmed.slice(chordsMatch[0].length).trim();
       const chordText = rest.includes(SONG_FORMAT.chordSeparator) ? rest.slice(rest.indexOf(SONG_FORMAT.chordSeparator) + 1).trim() : rest;
 
       if (!chordText) {
@@ -185,22 +256,21 @@ function parseBlocks(lines: string[], notation: ChordNotation, warnings: string[
       lastChords = ownChords;
     }
 
-    let kind: SongBlockKind = 'verse';
-
     if (!current) {
-      const marker = SONG_FORMAT.chorusMarker.exec(lyrics);
-      if (marker) {
-        kind = 'chorus';
-        lyrics = lyrics.slice(marker[0].length).trim();
-      } else {
-        const legacy = SONG_FORMAT.legacyChorusMarker.exec(lyrics);
-        if (legacy) {
-          kind = 'chorus';
-          lyrics = lyrics.slice(legacy[0].length).trim();
-          warnings.push(`Chorus marked as "${legacy[0].trim()}" - write {ref} instead.`);
+      // A marker with lyrics after it opens - and defines - that chorus.
+      const opening = matchChorusMarker(lyrics);
+      if (opening && opening.rest !== '') {
+        noteSyntax(opening.syntax, warnings);
+        if (choruses.has(opening.key)) {
+          // A chorus is written out once and then recalled; two texts under one
+          // number means one of them would silently never be printed.
+          errors.push(`${chorusLabel(opening.key)} is written out twice - a chorus may only be written out once.`);
         }
+        lyrics = opening.rest;
+        current = { kind: 'chorus', chorusKey: opening.key, lines: [] };
+      } else {
+        current = { kind: 'verse', lines: [] };
       }
-      current = { kind, lines: [] };
     }
 
     current.lines.push({
@@ -215,6 +285,9 @@ function parseBlocks(lines: string[], notation: ChordNotation, warnings: string[
   return blocks;
 }
 
+const BRACKET_WARNING = 'Tag written in square brackets - braces are the form to use, e.g. {title} or {ref1}.';
+const WORD_CHORUS_WARNING = 'Chorus marked with a bare word - write {ref} instead.';
+
 /**
  * A copy of the chorus for a bare `[ref]`. The chords come along, and the
  * running chord state is left alone, so whatever follows picks up where the
@@ -223,6 +296,7 @@ function parseBlocks(lines: string[], notation: ChordNotation, warnings: string[
 function repeatOf(chorus: SongBlock): SongBlock {
   return {
     kind: 'chorus',
+    chorusKey: chorus.chorusKey,
     isRepeat: true,
     lines: chorus.lines.map(line => ({ ...line, chords: [...line.chords] })),
   };

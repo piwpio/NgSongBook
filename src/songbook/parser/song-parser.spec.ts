@@ -71,17 +71,129 @@ describe('parseSong', () => {
     expect(last.lines[0].rawChords).toEqual('abDeGEGE');
   });
 
-  it('warns when {ref} comes before the chorus was written out', () => {
+  it('rejects a {ref} used before it is written out', () => {
     const parsed = parseSong('{title}T\n{author}A\n\n{ref}\n\nlinia', 'x.txt');
-    expect(parsed.blocks.length).toBe(1);
-    expect(parsed.warnings.some(w => w.includes('{ref}'))).toBe(true);
+    expect(parsed.valid).toBe(false);
+    expect(parsed.errors).toEqual(['{ref} is used before it is written out.']);
+  });
+
+  describe('numbered choruses', () => {
+    const song = [
+      '{title}T',
+      '{author}A',
+      '',
+      'zwrotka 1|C',
+      '',
+      '{ref1}pierwszy refren|G',
+      '',
+      'zwrotka 2',
+      '',
+      '{ref1}',
+      '',
+      '{ref2}drugi refren|a',
+      '',
+      '{ref1}',
+    ].join('\n');
+
+    it('keeps each numbered chorus and brings the right one back', () => {
+      const parsed = parseSong(song, 'x.txt');
+      expect(parsed.valid).toBe(true);
+      expect(parsed.blocks.map(b => `${b.kind}${b.chorusKey ?? ''}${b.isRepeat ? '*' : ''}`)).toEqual([
+        'verse',
+        'chorus1',
+        'verse',
+        'chorus1*',
+        'chorus2',
+        'chorus1*',
+      ]);
+    });
+
+    it('repeats the text of the chorus it was given', () => {
+      const parsed = parseSong(song, 'x.txt');
+      expect(parsed.blocks[3].lines[0].lyrics).toEqual('pierwszy refren');
+      expect(parsed.blocks[4].lines[0].lyrics).toEqual('drugi refren');
+      expect(parsed.blocks[5].lines[0].lyrics).toEqual('pierwszy refren');
+    });
+
+    it('keeps {ref} separate from {ref1} instead of aliasing them', () => {
+      const parsed = parseSong('{title}T\n{author}A\n\n{ref}jeden|C\n\n{ref1}', 'x.txt');
+      expect(parsed.valid).toBe(false);
+      expect(parsed.errors).toEqual(['{ref1} is used before it is written out.']);
+    });
+
+    it('accepts numbers that do not run in order', () => {
+      const parsed = parseSong('{title}T\n{author}A\n\n{ref1}pierwszy|C\n\n{ref5}piąty|G\n\n{ref1}\n\n{ref5}', 'x.txt');
+      expect(parsed.valid).toBe(true);
+      expect(parsed.blocks.map(b => b.chorusKey)).toEqual(['1', '5', '1', '5']);
+      expect(parsed.blocks[2].lines[0].lyrics).toEqual('pierwszy');
+      expect(parsed.blocks[3].lines[0].lyrics).toEqual('piąty');
+    });
+
+    it('treats {ref007} and {ref7} as the same chorus', () => {
+      const parsed = parseSong('{title}T\n{author}A\n\n{ref007}jeden|C\n\n{ref7}', 'x.txt');
+      expect(parsed.valid).toBe(true);
+      expect(parsed.blocks[1].lines[0].lyrics).toEqual('jeden');
+    });
+
+    it('rejects a number that was never written out', () => {
+      const parsed = parseSong('{title}T\n{author}A\n\n{ref1}jeden|C\n\n{ref2}', 'x.txt');
+      expect(parsed.valid).toBe(false);
+      expect(parsed.errors).toEqual(['{ref2} is used before it is written out.']);
+    });
+
+    it('rejects a chorus written out twice under the same number', () => {
+      const parsed = parseSong('{title}T\n{author}A\n\n{ref1}jeden|C\n\n{ref1}znowu|G', 'x.txt');
+      expect(parsed.valid).toBe(false);
+      expect(parsed.errors).toEqual(['{ref1} is written out twice - a chorus may only be written out once.']);
+    });
+
+    it('rejects the unnumbered chorus written out twice as well', () => {
+      const parsed = parseSong('{title}T\n{author}A\n\n{ref}jeden|C\n\n{ref}znowu|G', 'x.txt');
+      expect(parsed.valid).toBe(false);
+      expect(parsed.errors[0]).toContain('{ref} is written out twice');
+    });
+
+    it('accepts the bracket spelling, and says it once however often it appears', () => {
+      const parsed = parseSong('{title}T\n{author}A\n\n[ref1]jeden|C\n\n[ref1]\n\n[ref1]', 'x.txt');
+      expect(parsed.valid).toBe(true);
+      expect(parsed.warnings.filter(w => w.includes('square brackets')).length).toBe(1);
+      expect(parsed.blocks.map(b => b.isRepeat ?? false)).toEqual([false, true, true]);
+    });
+
+    it('does not mistake {ref2} in the header for a meta key', () => {
+      const parsed = parseSong('{title}T\n{author}A\n{ref2}od razu refren|C', 'x.txt');
+      expect(parsed.meta).toEqual({ title: 'T', author: 'A' });
+      expect(parsed.blocks[0].chorusKey).toEqual('2');
+    });
   });
 
   it('still accepts the old ref. spelling, but says so', () => {
     const parsed = parseSong('{title}T\n{author}A\n\nref. linia', 'x.txt');
     expect(parsed.blocks[0].kind).toEqual('chorus');
     expect(parsed.blocks[0].lines[0].lyrics).toEqual('linia');
-    expect(parsed.warnings.some(w => w.includes('{ref}'))).toBe(true);
+    expect(parsed.warnings.some(w => w.includes('bare word'))).toBe(true);
+  });
+
+  describe('square brackets', () => {
+    it('accepts every tag in square brackets and warns once', () => {
+      const parsed = parseSong('[title]T\n[author]A\n[extra]capo 2\n\n[chords]C G\n\n[ref]refren|C\n\n[ref]', 'x.txt');
+      expect(parsed.valid).toBe(true);
+      expect(parsed.meta).toEqual({ title: 'T', author: 'A', extra: 'capo 2' });
+      expect(parsed.blocks[0].lines[0].chordsOnly).toBe(true);
+      expect(parsed.blocks.map(b => b.kind)).toEqual(['verse', 'chorus', 'chorus']);
+      expect(parsed.warnings.filter(w => w.includes('square brackets')).length).toBe(1);
+    });
+
+    it('lets braces and brackets name the same chorus', () => {
+      const parsed = parseSong('{title}T\n{author}A\n\n[ref]refren|C\n\n{ref}', 'x.txt');
+      expect(parsed.valid).toBe(true);
+      expect(parsed.blocks[1].isRepeat).toBe(true);
+    });
+
+    it('says nothing when everything is written with braces', () => {
+      const parsed = parseSong('{title}T\n{author}A\n\n{chords}C\n\n{ref}r|C\n\n{ref}', 'x.txt');
+      expect(parsed.warnings).toEqual([]);
+    });
   });
 
   it('repeats the last given chords on every following line, also across blocks', () => {
