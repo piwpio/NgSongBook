@@ -28,7 +28,12 @@
             "inlineStyleLanguage": "scss",
             "assets": [
               "src/favicon.ico",
-              "src/assets"
+              "src/assets",
+              {
+                "glob": "**/*.txt",
+                "input": "songs",
+                "output": "songs"
+              }
             ],
             "styles": [
               "src/styles.scss"

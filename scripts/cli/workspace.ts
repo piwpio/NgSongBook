@@ -1,10 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { Song, parseSong } from '../../src/songbook';
+import { Song, parseSong, sortSongsByTitle } from '../../src/songbook';
 import { ChordNotation } from '../../src/songbook/parser/chord-tokenizer';
 
-export const SONG_LIST_FILE = '__songs__.txt';
-export const HISTORY_FILE = 'print-history.json';
+/** Where the songbook keeps the real songs, relative to the project root. */
+export const SONGS_DIR = 'songs';
+/** Committed print history. It lives under src/assets so the app can read it too. */
+export const HISTORY_FILE = path.join('src', 'assets', 'print-history.json');
 
 export function findProjectRoot(startDir: string): string {
   let dir = startDir;
@@ -21,31 +23,34 @@ export function findProjectRoot(startDir: string): string {
 }
 
 /**
- * Song order follows `__songs__.txt` when it exists (same source the Angular
- * app uses), otherwise falls back to an alphabetical scan of the assets dir.
+ * Every .txt under the songs directory, including subdirectories - a folder
+ * never hides a song. Folders carry no meaning yet; the songbook is ordered
+ * alphabetically by title once the files are parsed.
  */
-export function listSongFiles(assetsDir: string): string[] {
-  const listPath = path.join(assetsDir, SONG_LIST_FILE);
-  if (fs.existsSync(listPath)) {
-    const listed = fs
-      .readFileSync(listPath, 'utf8')
-      .split(/\r?\n/)
-      .map(line => line.trim())
-      .filter(line => line.endsWith('.txt') && line !== SONG_LIST_FILE)
-      .filter(file => fs.existsSync(path.join(assetsDir, file)));
-    if (listed.length > 0) {
-      return listed;
-    }
-  }
+export function listSongFiles(songsDir: string): string[] {
+  const found: string[] = [];
 
-  return fs
-    .readdirSync(assetsDir)
-    .filter(file => file.endsWith('.txt') && file !== SONG_LIST_FILE)
-    .sort((a, b) => a.localeCompare(b, 'pl'));
+  const walk = (dir: string, prefix: string) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name.startsWith('.')) {
+        continue;
+      }
+      const relative = prefix ? path.join(prefix, entry.name) : entry.name;
+      if (entry.isDirectory()) {
+        walk(path.join(dir, entry.name), relative);
+      } else if (entry.name.endsWith('.txt')) {
+        found.push(relative);
+      }
+    }
+  };
+
+  walk(songsDir, '');
+  return found;
 }
 
-export function loadSongs(assetsDir: string, chordNotation: ChordNotation = 'pl'): Song[] {
-  return listSongFiles(assetsDir).map(file => parseSong(fs.readFileSync(path.join(assetsDir, file), 'utf8'), file, { chordNotation }));
+export function loadSongs(songsDir: string, chordNotation: ChordNotation = 'pl'): Song[] {
+  const songs = listSongFiles(songsDir).map(file => parseSong(fs.readFileSync(path.join(songsDir, file), 'utf8'), file, { chordNotation }));
+  return sortSongsByTitle(songs);
 }
 
 export function ensureDir(dir: string): void {

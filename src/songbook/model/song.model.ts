@@ -60,3 +60,15 @@ export function songLineCount(song: Song): number {
 export function hasAnyChords(song: Song): boolean {
   return song.blocks.some(block => block.lines.some(line => line.rawChords.length > 0));
 }
+
+/**
+ * The songbook's order: alphabetical by title, Polish collation. Songs are
+ * sorted after parsing, so the order follows what the reader sees in the table
+ * of contents rather than the file names on disk.
+ */
+export function sortSongsByTitle(songs: Song[]): Song[] {
+  return [...songs].sort((a, b) => {
+    const byTitle = a.meta.title.localeCompare(b.meta.title, 'pl', { sensitivity: 'base' });
+    return byTitle !== 0 ? byTitle : a.sourceFile.localeCompare(b.sourceFile, 'pl');
+  });
+}

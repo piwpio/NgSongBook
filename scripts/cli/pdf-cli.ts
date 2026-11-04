@@ -21,7 +21,7 @@ import {
 import { ChordNotation } from '../../src/songbook/parser/chord-tokenizer';
 import { ParsedArgs, bool, list, num, parseArgs, str } from './args';
 import { measureRoboto, robotoFonts } from './fonts';
-import { HISTORY_FILE, ensureDir, findProjectRoot, loadSongs, timestampSlug } from './workspace';
+import { HISTORY_FILE, SONGS_DIR, ensureDir, findProjectRoot, loadSongs, timestampSlug } from './workspace';
 
 const USAGE = `
 Songbook - PDF generator
@@ -43,7 +43,7 @@ Common options:
   --title "My songbook"       document / cover title
   --songs a.txt,b.txt         limit to the given files
   --out path.pdf              output file
-  --assets dir                songs directory (default src/assets)
+  --songs-dir dir             songs directory (default songs/, read recursively)
   --history file.json         print history file (default src/assets/print-history.json)
 
 'book' only:
@@ -222,7 +222,7 @@ function printStatusTable(statuses: { song: Song; status: string }[]): void {
 
 interface Context {
   root: string;
-  assetsDir: string;
+  songsDir: string;
   historyPath: string;
   outputDir: string;
   songs: Song[];
@@ -237,16 +237,16 @@ async function main(): Promise<void> {
   }
 
   const root = findProjectRoot(__dirname);
-  const assetsDir = path.resolve(root, str(args.flags, 'assets') ?? 'src/assets');
-  const historyPath = path.resolve(root, str(args.flags, 'history') ?? path.join(assetsDir, HISTORY_FILE));
+  const songsDir = path.resolve(root, str(args.flags, 'songs-dir') ?? SONGS_DIR);
+  const historyPath = path.resolve(root, str(args.flags, 'history') ?? HISTORY_FILE);
   const outputDir = path.resolve(root, 'output');
 
-  if (!fs.existsSync(assetsDir)) {
-    throw new Error(`Songs directory not found: ${assetsDir}`);
+  if (!fs.existsSync(songsDir)) {
+    throw new Error(`Songs directory not found: ${songsDir}`);
   }
 
   const notation = (str(args.flags, 'notation') as ChordNotation | undefined) ?? 'pl';
-  const allSongs = loadSongs(assetsDir, notation);
+  const allSongs = loadSongs(songsDir, notation);
   const songs = allSongs.filter(song => song.valid);
   const skipped = allSongs.filter(song => !song.valid);
 
@@ -257,7 +257,7 @@ async function main(): Promise<void> {
     console.error('');
   }
 
-  const ctx: Context = { root, assetsDir, historyPath, outputDir, songs };
+  const ctx: Context = { root, songsDir, historyPath, outputDir, songs };
 
   switch (args.command) {
     case 'book':

@@ -22,7 +22,7 @@ describe('SongService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('loads and parses every song from __songs__.txt', done => {
+  it('loads and parses every song from the generated index', done => {
     service.loadSongs().subscribe(songs => {
       expect(songs.length).toBe(1);
       expect(songs[0].meta.title).toBe('Piosenka');
@@ -30,15 +30,36 @@ describe('SongService', () => {
       done();
     });
 
-    http.expectOne('assets/__songs__.txt').flush('one.txt\n');
-    http.expectOne('assets/one.txt').flush('{title}Piosenka\n{author}Ktoś\n\n\nlinia 1|C\nlinia 2');
+    http.expectOne('assets/songs-index.json').flush({ songs: ['one.txt'] });
+    http.expectOne('songs/one.txt').flush('{title}Piosenka\n{author}Ktoś\n\n\nlinia 1|C\nlinia 2');
   });
 
-  it('returns an empty list when nothing is listed', done => {
+  it('sorts the songs alphabetically by title, not by file name', done => {
+    service.loadSongs().subscribe(songs => {
+      expect(songs.map(song => song.meta.title)).toEqual(['Ale', 'Żubr']);
+      done();
+    });
+
+    http.expectOne('assets/songs-index.json').flush({ songs: ['a.txt', 'b.txt'] });
+    http.expectOne('songs/a.txt').flush('{title}Żubr\n{author}X\n\nlinia|C');
+    http.expectOne('songs/b.txt').flush('{title}Ale\n{author}X\n\nlinia|C');
+  });
+
+  it('finds songs inside subdirectories', done => {
+    service.loadSongs().subscribe(songs => {
+      expect(songs[0].sourceFile).toEqual('koledy/cicha-noc.txt');
+      done();
+    });
+
+    http.expectOne('assets/songs-index.json').flush({ songs: ['koledy/cicha-noc.txt'] });
+    http.expectOne('songs/koledy/cicha-noc.txt').flush('{title}Cicha noc\n{author}X\n\nlinia|C');
+  });
+
+  it('returns an empty list when the index is empty', done => {
     service.loadSongs().subscribe(songs => {
       expect(songs).toEqual([]);
       done();
     });
-    http.expectOne('assets/__songs__.txt').flush('');
+    http.expectOne('assets/songs-index.json').flush({ songs: [] });
   });
 });

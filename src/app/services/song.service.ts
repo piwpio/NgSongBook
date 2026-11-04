@@ -1,36 +1,39 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, forkJoin, map, of, switchMap } from 'rxjs';
-import { ChordNotation, Song, parseSong } from '../../songbook';
+import { ChordNotation, Song, parseSong, sortSongsByTitle } from '../../songbook';
 
-const SONG_LIST = 'assets/__songs__.txt';
+/**
+ * A browser cannot list a directory, so the app reads a generated index of the
+ * `songs/` folder. `npm run songs:index` writes it, and prestart / prebuild run
+ * that automatically - nobody maintains it by hand. The CLI does not use it at
+ * all; it walks the directory itself.
+ */
+const SONGS_INDEX = 'assets/songs-index.json';
+const SONGS_PATH = 'songs';
+
+interface SongsIndex {
+  songs: string[];
+}
 
 @Injectable({ providedIn: 'root' })
 export class SongService {
   private readonly httpClient = inject(HttpClient);
 
-  /**
-   * Loads every song listed in `assets/__songs__.txt`.
-   * Returns an observable - the caller decides when to subscribe.
-   */
+  /** Every song in `songs/`, alphabetically by title. */
   loadSongs(chordNotation: ChordNotation = 'pl'): Observable<Song[]> {
-    return this.httpClient.get(SONG_LIST, { responseType: 'text' }).pipe(
-      map(text =>
-        text
-          .split(/\r?\n/)
-          .map(line => line.trim())
-          .filter(line => line.endsWith('.txt') && !line.startsWith('__'))
-      ),
+    return this.httpClient.get<SongsIndex>(SONGS_INDEX).pipe(
+      map(index => index?.songs ?? []),
       switchMap(fileNames =>
         fileNames.length === 0
           ? of([] as { name: string; content: string }[])
           : forkJoin(
               fileNames.map(name =>
-                this.httpClient.get(`assets/${name}`, { responseType: 'text' }).pipe(map(content => ({ name, content })))
+                this.httpClient.get(`${SONGS_PATH}/${name}`, { responseType: 'text' }).pipe(map(content => ({ name, content })))
               )
             )
       ),
-      map(files => files.map(file => parseSong(file.content, file.name, { chordNotation })).filter(song => song.valid))
+      map(files => sortSongsByTitle(files.map(file => parseSong(file.content, file.name, { chordNotation })).filter(song => song.valid)))
     );
   }
 }

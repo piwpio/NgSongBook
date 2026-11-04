@@ -44,3 +44,6 @@ Thumbs.db
 
 # Generated PDFs
 /output
+
+# Generated index of songs/ for the browser app
+/src/assets/songs-index.json

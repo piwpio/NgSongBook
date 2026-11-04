@@ -20,9 +20,13 @@ przeglądarce i CLI dają identyczny PDF.
 
 ## Format pliku piosenki
 
-Prawdziwe piosenki trzymasz w `src/assets/`. Pliki do testowania formatu leżą
-osobno, w `test-songs/`, żeby nie mieszały się z Twoim śpiewnikiem — generujesz
-z nich przez `npm run pdf:test`.
+Prawdziwe piosenki trzymasz w `songs/`. Wrzucasz plik `.txt` i tyle — nie ma żadnej
+listy do utrzymywania. Generator czyta cały katalog, razem z podkatalogami, a śpiewnik
+układa **alfabetycznie po tytule**. Podkatalogi na razie niczego nie grupują, służą
+tylko Tobie do porządku.
+
+Pliki do testowania formatu leżą osobno, w `test-songs/`, żeby nie mieszały się z Twoim
+śpiewnikiem — generujesz z nich przez `npm run pdf:test`.
 
 Piosenka to plik `.txt`. Przykład:
 
@@ -98,18 +102,6 @@ Zbity zapis akordów jest rozbijany na pojedyncze akordy: `AaDeD` → `A a D e D
 `abDeGEGE` → `a b D e G E G E`. Sufiksy zostają przy swoim dźwięku (`Amaj7`, `Dsus4`,
 `F#`, `C/G`). Domyślnie obowiązuje **notacja polska** — `b` to osobny akord (b-moll),
 nie bemol; `--notation intl` przełącza na międzynarodową, gdzie `Ab` to As-dur.
-
-**Lista piosenek** — `src/assets/__songs__.txt` ustala kolejność. Po dodaniu pliku:
-
-```bash
-npm run generate-song-list
-```
-
-a dla plików testowych:
-
-```bash
-npm run generate-song-list test-songs
-```
 
 ---
 
@@ -191,6 +183,11 @@ npm start     # http://localhost:4200
 Podgląd wszystkich piosenek z akordami plus te same dwa przyciski generowania.
 pdfmake (~2 MB z fontami) ładuje się leniwie, dopiero przy pierwszym PDF-ie.
 
+Przeglądarka nie potrafi wylistować katalogu po HTTP, więc aplikacja czyta indeks
+`src/assets/songs-index.json`. Jest generowany z `songs/` automatycznie przez
+`prestart` i `prebuild` (albo ręcznie: `npm run songs:index`), leży w `.gitignore`
+i nie dotykasz go. CLI z niego nie korzysta — czyta katalog wprost.
+
 Przeglądarka nie zapisze pliku w repo, więc historia działa warstwowo:
 komitowany `assets/print-history.json` + to, co wygenerowano w tej przeglądarce
 (localStorage). Przycisk **Pobierz print-history.json** eksportuje scaloną historię —
@@ -208,7 +205,8 @@ src/songbook/            rdzeń - bez Angulara i bez Node'a
   history/               print-history.ts (wybór niedrukowanych, hash treści)
 scripts/cli/             CLI (tsc -> dist/cli, uruchamiane przez npm run pdf:*)
 src/app/                 aplikacja Angular
-src/assets/              Twoje piosenki .txt, __songs__.txt, print-history.json
+songs/                   Twoje piosenki .txt (także w podkatalogach)
+src/assets/              print-history.json i wygenerowany songs-index.json
 test-songs/              pliki testowe formatu, osobno od prawdziwych piosenek
 output/                  wygenerowane PDF-y (gitignore)
 ```
