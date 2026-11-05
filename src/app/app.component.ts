@@ -1,5 +1,16 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
-import { ChordLayout, PageSize, PrintHistory, PrintStatus, Song, emptyHistory, statusOf } from '../songbook';
+import {
+  ChordLayout,
+  ChordNotation,
+  PageSize,
+  PrintHistory,
+  PrintStatus,
+  Song,
+  SongLine,
+  emptyHistory,
+  formatChords,
+  statusOf,
+} from '../songbook';
 import { PdfService } from './services/pdf.service';
 import { PrintHistoryService } from './services/print-history.service';
 import { SongService } from './services/song.service';
@@ -34,6 +45,7 @@ export class AppComponent implements OnInit {
   boldLyrics = false;
   splitChords = true;
   bookTitle = 'Śpiewnik Złotego';
+  chordNotation: ChordNotation = 'pl';
 
   readonly statusLabel: Record<PrintStatus, string> = {
     new: 'new',
@@ -65,6 +77,14 @@ export class AppComponent implements OnInit {
     await this.pdf.openSongbook(this.songs, { ...this.pdfOptions(), title: this.bookTitle });
   }
 
+  /** The chord line as it will be printed, translated to the chosen notation. */
+  chordsOf(line: SongLine): string {
+    if (!line.rawChords) {
+      return '';
+    }
+    return this.splitChords ? formatChords(line.chords, this.chordNotation) : formatChords(line.chords, this.chordNotation, ' ');
+  }
+
   trackBySong(_index: number, row: SongRow): string {
     return row.song.id;
   }
@@ -73,6 +93,7 @@ export class AppComponent implements OnInit {
     return {
       pageSize: this.pageSize,
       chordLayout: this.chordLayout,
+      chordNotation: this.chordNotation,
       boldLyrics: this.boldLyrics,
       splitChords: this.splitChords,
     };

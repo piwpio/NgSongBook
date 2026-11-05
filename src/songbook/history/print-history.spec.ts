@@ -13,7 +13,7 @@ function songOf(file: string, raw = 'tekst'): Song {
   return {
     id: file.replace('.txt', ''),
     sourceFile: file,
-    meta: { title: file, author: 'A' },
+    meta: { title: file, author: 'A', notation: 'pl' as const, notationGuessed: true },
     blocks: [],
     raw,
     valid: true,

@@ -21,7 +21,7 @@ export class SongService {
   private readonly httpClient = inject(HttpClient);
 
   /** Every song in `songs/`, alphabetically by title. */
-  loadSongs(chordNotation: ChordNotation = 'pl'): Observable<Song[]> {
+  loadSongs(defaultNotation: ChordNotation = 'pl'): Observable<Song[]> {
     return this.httpClient.get<SongsIndex>(SONGS_INDEX).pipe(
       map(index => index?.songs ?? []),
       switchMap(fileNames =>
@@ -33,7 +33,7 @@ export class SongService {
               )
             )
       ),
-      map(files => sortSongsByTitle(files.map(file => parseSong(file.content, file.name, { chordNotation })).filter(song => song.valid)))
+      map(files => sortSongsByTitle(files.map(file => parseSong(file.content, file.name, { defaultNotation })).filter(song => song.valid)))
     );
   }
 }

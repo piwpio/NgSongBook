@@ -35,7 +35,11 @@ Common options:
   --page-size A4|A5           page format (default A4)
   --chords right|above|none   right hand column (default) / above the lyrics / no chords
   --no-split-chords           print chords exactly as written (AaDeD instead of A  a  D  e  D)
-  --notation pl|intl          'pl' (default): b is its own chord; 'intl': b after a root is a flat
+  --notation pl|en            notation to PRINT the chords in (default pl).
+                              'pl' = H, B flat as B, minor in lower case: a, cis
+                              'en' = B, Bb, minor with an m: Am, C#m
+                              Each song says which one it was WRITTEN in with
+                              {notation}, or it is guessed from the chords.
   --font-size N               lyrics size (A4: 11, A5: 12)
   --chord-size N              chord size (A4: 9.5, A5: 10.5)
   --title-size N              song title size

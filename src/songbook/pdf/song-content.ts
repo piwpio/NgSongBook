@@ -1,5 +1,6 @@
 import { Content, ContentStack } from 'pdfmake/interfaces';
 import { Song, SongBlock, SongLine } from '../model/song.model';
+import { ChordNotation } from '../parser/chord';
 import { formatChords } from '../parser/chord-tokenizer';
 import { PdfOptions, contentWidth } from './pdf-options';
 
@@ -28,7 +29,8 @@ export interface SongContent {
 export function buildSongContent(song: Song, options: SongContentOptions): SongContent {
   const header = buildHeader(song, options);
   const lyricsWidth = lyricsColumnWidth(song, options);
-  const blocks = song.blocks.map(block => buildBlock(block, options, lyricsWidth));
+  const source = song.meta.notation;
+  const blocks = song.blocks.map(block => buildBlock(block, options, lyricsWidth, source));
   return { content: [...header, ...blocks], titleNode: header[0] };
 }
 
@@ -126,7 +128,7 @@ function buildHeader(song: Song, options: SongContentOptions): Content[] {
  * One verse / chorus. `unbreakable` keeps the whole block on a single page,
  * so a stanza is never torn in half across a page boundary.
  */
-function buildBlock(block: SongBlock, options: PdfOptions, lyricsWidth: number): ContentStack {
+function buildBlock(block: SongBlock, options: PdfOptions, lyricsWidth: number, source: ChordNotation): ContentStack {
   const indent = block.kind === 'chorus' ? options.chorusIndent : 0;
   const lines: Content[] = [];
 
@@ -136,7 +138,7 @@ function buildBlock(block: SongBlock, options: PdfOptions, lyricsWidth: number):
 
   block.lines.forEach((line, index) => {
     const opening = index === openingLine;
-    lines.push(...buildLine(line, options, lyricsWidth, indent, opening));
+    lines.push(...buildLine(line, options, lyricsWidth, indent, source, opening));
   });
 
   return {
@@ -149,8 +151,15 @@ function buildBlock(block: SongBlock, options: PdfOptions, lyricsWidth: number):
   };
 }
 
-function buildLine(line: SongLine, options: PdfOptions, lyricsWidth: number, indent: number, opening = false): Content[] {
-  const chordText = renderChords(line, options);
+function buildLine(
+  line: SongLine,
+  options: PdfOptions,
+  lyricsWidth: number,
+  indent: number,
+  source: ChordNotation,
+  opening = false
+): Content[] {
+  const chordText = renderChords(line, options, source);
   const lyrics = opening ? capitalizeFirst(line.lyrics) : line.lyrics;
   const margin: [number, number, number, number] = [indent, 0, 0, 0];
 
@@ -201,15 +210,21 @@ function capitalizeFirst(text: string): string {
   return upper === first ? text : upper + text.slice(1);
 }
 
-function renderChords(line: SongLine, options: PdfOptions): string {
-  return renderChordString(line.chords, line.rawChords, options);
-}
-
-function renderChordString(chords: string[], raw: string, options: PdfOptions): string {
-  if (!raw) {
+function renderChords(line: SongLine, options: PdfOptions, source: ChordNotation): string {
+  if (!line.rawChords) {
     return '';
   }
-  return options.splitChords ? formatChords(chords) : raw;
+
+  const target = options.chordNotation;
+
+  // `--no-split-chords` means "print it as written" - but only while written and
+  // printed are the same notation. Once the chords are being translated there is
+  // no verbatim form to keep, so they are spaced out like any other.
+  if (!options.splitChords) {
+    return source === target ? line.rawChords : formatChords(line.chords, target, ' ');
+  }
+
+  return formatChords(line.chords, target);
 }
 
 export function buildStyles(options: PdfOptions): Record<string, Record<string, unknown>> {

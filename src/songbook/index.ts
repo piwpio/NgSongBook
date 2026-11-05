@@ -1,4 +1,5 @@
 export * from './model/song.model';
+export * from './parser/chord';
 export * from './parser/chord-tokenizer';
 export * from './parser/song-parser';
 export * from './pdf/pdf-options';

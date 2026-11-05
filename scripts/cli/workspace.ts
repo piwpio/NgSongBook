@@ -52,8 +52,10 @@ export function listSongFiles(songsDir: string): string[] {
   return found;
 }
 
-export function loadSongs(songsDir: string, chordNotation: ChordNotation = 'pl'): Song[] {
-  const songs = listSongFiles(songsDir).map(file => parseSong(fs.readFileSync(path.join(songsDir, file), 'utf8'), file, { chordNotation }));
+export function loadSongs(songsDir: string, defaultNotation: ChordNotation = 'pl'): Song[] {
+  const songs = listSongFiles(songsDir).map(file =>
+    parseSong(fs.readFileSync(path.join(songsDir, file), 'utf8'), file, { defaultNotation })
+  );
   return sortSongsByTitle(songs);
 }
 

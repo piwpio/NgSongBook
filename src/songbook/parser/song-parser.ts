@@ -1,5 +1,6 @@
 import { Song, SongBlock, SongMeta } from '../model/song.model';
-import { ChordNotation, tokenizeChords } from './chord-tokenizer';
+import { ChordNotation, detectNotation, parseNotation } from './chord';
+import { parseChords, tokenizeChords } from './chord-tokenizer';
 
 export const SONG_FORMAT = {
   /**
@@ -30,22 +31,35 @@ export const SONG_FORMAT = {
    * the meta scan has to stop when it meets one. `ref`, `ref1`, `ref2`, ...
    */
   bodyMarkerKey: /^(?:ref\d*|chords)$/i,
-  knownMetaKeys: ['title', 'author', 'extra'] as const,
+  knownMetaKeys: ['title', 'author', 'extra', 'notation'] as const,
 } as const;
 
 export interface ParseSongOptions {
-  chordNotation?: ChordNotation;
+  /**
+   * Which notation to read the chords as when the file neither declares one
+   * with `{notation}` nor gives the guess anything to go on.
+   */
+  defaultNotation?: ChordNotation;
   /** Fallback title when the file has no `{title}`. Defaults to the prettified file name. */
   fallbackTitle?: string;
 }
 
 export function parseSong(raw: string, sourceFile = '', options: ParseSongOptions = {}): Song {
-  const notation = options.chordNotation ?? 'pl';
   const warnings: string[] = [];
   const errors: string[] = [];
 
   const lines = normalise(raw).split('\n');
   const { meta, rest } = readMeta(lines, warnings);
+
+  // Which notation the chords are written in. Declared beats guessed, guessed
+  // beats the default - a songbook holds songs copied from all sorts of places,
+  // so this cannot be one setting for the whole run.
+  const declared = parseNotation(meta['notation']);
+  if (meta['notation'] && !declared) {
+    warnings.push(`Unknown {notation} "${meta['notation']}" - expected pl or en.`);
+  }
+  const guessed = declared ? null : detectNotation(collectChordTokens(rest));
+  const notation = declared ?? guessed ?? options.defaultNotation ?? 'pl';
 
   // {title} and {author} are required; {extra} is not.
   const title = meta['title'] ?? options.fallbackTitle ?? prettifyFileName(sourceFile);
@@ -56,7 +70,7 @@ export function parseSong(raw: string, sourceFile = '', options: ParseSongOption
     errors.push('Missing {author}.');
   }
 
-  const songMeta: SongMeta = { title };
+  const songMeta: SongMeta = { title, notation, notationGuessed: !declared };
   if (meta['author']) {
     songMeta.author = meta['author'];
   }
@@ -240,7 +254,7 @@ function parseBlocks(lines: string[], notation: ChordNotation, warnings: string[
       current.lines.push({
         lyrics: '',
         rawChords: chordText,
-        chords: tokenizeChords(chordText, notation),
+        chords: parseChords(chordText, notation),
         chordsExplicit: true,
         chordsOnly: true,
       });
@@ -276,7 +290,7 @@ function parseBlocks(lines: string[], notation: ChordNotation, warnings: string[
     current.lines.push({
       lyrics,
       rawChords: lastChords,
-      chords: tokenizeChords(lastChords, notation),
+      chords: parseChords(lastChords, notation),
       chordsExplicit: hasOwnChords && ownChords.length > 0,
     });
   }
@@ -300,6 +314,24 @@ function repeatOf(chorus: SongBlock): SongBlock {
     isRepeat: true,
     lines: chorus.lines.map(line => ({ ...line, chords: [...line.chords] })),
   };
+}
+
+/**
+ * Every chord token in the body, used to guess the notation before the song is
+ * properly parsed. Tokenised as Polish on purpose: that split never swallows a
+ * `b` into the root, so an English `Bb` still shows up as evidence.
+ */
+function collectChordTokens(lines: string[]): string[] {
+  const tokens: string[] = [];
+  for (const line of lines) {
+    const at = line.indexOf(SONG_FORMAT.chordSeparator);
+    const source =
+      at >= 0 ? line.slice(at + 1) : SONG_FORMAT.chordsLine.test(line.trim()) ? line.trim().replace(SONG_FORMAT.chordsLine, '') : '';
+    if (source.trim()) {
+      tokens.push(...tokenizeChords(source.trim(), 'pl'));
+    }
+  }
+  return tokens;
 }
 
 export function prettifyFileName(fileName: string): string {

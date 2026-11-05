@@ -1,4 +1,4 @@
-import { tokenizeChords } from './chord-tokenizer';
+import { formatChords, tokenizeChords } from './chord-tokenizer';
 import { parseSong } from './song-parser';
 
 describe('tokenizeChords', () => {
@@ -13,9 +13,9 @@ describe('tokenizeChords', () => {
     expect(tokenizeChords('C/G')).toEqual(['C/G']);
   });
 
-  it('treats b as a flat only in international notation', () => {
+  it('treats b as a flat only in English notation', () => {
     expect(tokenizeChords('Ab')).toEqual(['A', 'b']);
-    expect(tokenizeChords('Ab', 'intl')).toEqual(['Ab']);
+    expect(tokenizeChords('Ab', 'en')).toEqual(['Ab']);
   });
 });
 
@@ -40,7 +40,7 @@ describe('parseSong', () => {
 
   it('reads the meta block', () => {
     const parsed = parseSong(song, 'test1.txt');
-    expect(parsed.meta).toEqual({
+    expect(parsed.meta).toMatchObject({
       title: 'Tytuł piosenki',
       author: 'Wykonawca piosenki',
       extra: 'capo 2',
@@ -162,7 +162,7 @@ describe('parseSong', () => {
 
     it('does not mistake {ref2} in the header for a meta key', () => {
       const parsed = parseSong('{title}T\n{author}A\n{ref2}od razu refren|C', 'x.txt');
-      expect(parsed.meta).toEqual({ title: 'T', author: 'A' });
+      expect(parsed.meta).toMatchObject({ title: 'T', author: 'A' });
       expect(parsed.blocks[0].chorusKey).toEqual('2');
     });
   });
@@ -178,7 +178,7 @@ describe('parseSong', () => {
     it('accepts every tag in square brackets and warns once', () => {
       const parsed = parseSong('[title]T\n[author]A\n[extra]capo 2\n\n[chords]C G\n\n[ref]refren|C\n\n[ref]', 'x.txt');
       expect(parsed.valid).toBe(true);
-      expect(parsed.meta).toEqual({ title: 'T', author: 'A', extra: 'capo 2' });
+      expect(parsed.meta).toMatchObject({ title: 'T', author: 'A', extra: 'capo 2' });
       expect(parsed.blocks[0].lines[0].chordsOnly).toBe(true);
       expect(parsed.blocks.map(b => b.kind)).toEqual(['verse', 'chorus', 'chorus']);
       expect(parsed.warnings.filter(w => w.includes('square brackets')).length).toBe(1);
@@ -243,7 +243,7 @@ describe('parseSong', () => {
     const passage = parsed.blocks[0].lines[0];
     expect(passage.chordsOnly).toBe(true);
     expect(passage.lyrics).toEqual('');
-    expect(passage.chords).toEqual(['e', 'C', 'G', 'D']);
+    expect(formatChords(passage.chords, 'pl', ' ')).toEqual('e C G D');
   });
 
   it('a {chords} line does not change the chords the lyrics inherit', () => {
@@ -257,7 +257,7 @@ describe('parseSong', () => {
 
   it('accepts {chords} as the very first line, after the meta block', () => {
     const parsed = parseSong('{title}T\n{author}A\n{chords}eCGD\n\nlinia', 'x.txt');
-    expect(parsed.meta).toEqual({ title: 'T', author: 'A' });
+    expect(parsed.meta).toMatchObject({ title: 'T', author: 'A' });
     expect(parsed.blocks[0].lines[0].chordsOnly).toBe(true);
   });
 
@@ -276,5 +276,57 @@ describe('parseSong', () => {
   it('handles windows line endings', () => {
     const parsed = parseSong('{title}T\r\n{author}A\r\n\r\nlinia 1|C\r\nlinia 2', 'w.txt');
     expect(parsed.blocks[0].lines.map(l => l.lyrics)).toEqual(['linia 1', 'linia 2']);
+  });
+});
+
+describe('chord notation of a song', () => {
+  const american = '{title}T\n{author}A\n\nlinia|E B C#m G#m';
+  const polish = '{title}T\n{author}A\n\nlinia|d A g F';
+
+  it('guesses English from an m-minor chord', () => {
+    const parsed = parseSong(american, 'x.txt');
+    expect(parsed.meta.notation).toBe('en');
+    expect(parsed.meta.notationGuessed).toBe(true);
+  });
+
+  it('guesses Polish from lower-case roots', () => {
+    const parsed = parseSong(polish, 'x.txt');
+    expect(parsed.meta.notation).toBe('pl');
+  });
+
+  it('prints an American song in Polish', () => {
+    const line = parseSong(american, 'x.txt').blocks[0].lines[0];
+    expect(formatChords(line.chords, 'pl', ' ')).toBe('E H cis gis');
+    expect(formatChords(line.chords, 'en', ' ')).toBe('E B C#m G#m');
+  });
+
+  it('prints a Polish song in English', () => {
+    const line = parseSong(polish, 'x.txt').blocks[0].lines[0];
+    expect(formatChords(line.chords, 'en', ' ')).toBe('Dm A Gm F');
+    expect(formatChords(line.chords, 'pl', ' ')).toBe('d A g F');
+  });
+
+  it('lets {notation} override the guess', () => {
+    // Written as B, which the guess cannot judge on its own.
+    const parsed = parseSong('{title}T\n{author}A\n{notation}en\n\nlinia|B', 'x.txt');
+    expect(parsed.meta.notation).toBe('en');
+    expect(parsed.meta.notationGuessed).toBe(false);
+    expect(formatChords(parsed.blocks[0].lines[0].chords, 'pl', ' ')).toBe('H');
+  });
+
+  it('reads the same B as B flat when the song says it is Polish', () => {
+    const parsed = parseSong('{title}T\n{author}A\n{notation}pl\n\nlinia|B', 'x.txt');
+    expect(formatChords(parsed.blocks[0].lines[0].chords, 'en', ' ')).toBe('Bb');
+  });
+
+  it('warns about a {notation} it does not know', () => {
+    const parsed = parseSong('{title}T\n{author}A\n{notation}klingon\n\nlinia|C', 'x.txt');
+    expect(parsed.valid).toBe(true);
+    expect(parsed.warnings.some(w => w.includes('{notation}'))).toBe(true);
+  });
+
+  it('falls back to the default when the chords give nothing away', () => {
+    expect(parseSong('{title}T\n{author}A\n\nlinia|C F G', 'x.txt').meta.notation).toBe('pl');
+    expect(parseSong('{title}T\n{author}A\n\nlinia|C F G', 'x.txt', { defaultNotation: 'en' }).meta.notation).toBe('en');
   });
 });

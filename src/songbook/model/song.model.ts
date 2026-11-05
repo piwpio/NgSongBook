@@ -4,12 +4,22 @@
  * from @angular/* nor from node builtins.
  */
 
+import { Chord, ChordNotation } from '../parser/chord';
+
 export type SongBlockKind = 'verse' | 'chorus';
 
 export interface SongMeta {
   title: string;
   author?: string;
   extra?: string;
+  /**
+   * The notation the chords are WRITTEN in, from a `{notation}` tag or guessed
+   * from the chords themselves. The notation they are PRINTED in is a setting
+   * of the document, not of the song.
+   */
+  notation: ChordNotation;
+  /** True when `notation` was guessed rather than declared in the file. */
+  notationGuessed: boolean;
 }
 
 export interface SongLine {
@@ -17,8 +27,8 @@ export interface SongLine {
   lyrics: string;
   /** Chords exactly as written in the file (possibly inherited from an earlier line). */
   rawChords: string;
-  /** `rawChords` split into single chords, e.g. 'AaDeD' -> ['A','a','D','e','D']. */
-  chords: string[];
+  /** `rawChords` read into chords, so they can be printed in either notation. */
+  chords: Chord[];
   /** true when this very line carried its own `|chords`, false when inherited. */
   chordsExplicit: boolean;
   /**

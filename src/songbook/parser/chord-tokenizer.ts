@@ -3,11 +3,13 @@
  * into single chords: ['A','a','D','e','D'] / ['a','b','D','e','G','E','G','E'].
  *
  * Notation:
- *  - 'pl'   (default) - Polish/German naming. `H` = B natural, `B` = B flat,
- *                       lowercase = minor. A bare `b` is therefore a ROOT, never a flat.
- *  - 'intl'           - international naming, `b` right after a root means "flat".
+ *  - 'pl' - Polish/German naming. `H` = B natural, `B` = B flat, lowercase =
+ *           minor. A bare `b` is therefore a ROOT, never a flat.
+ *  - 'en' - English/American naming, `b` right after a root means "flat".
  */
-export type ChordNotation = 'pl' | 'intl';
+import { Chord, ChordNotation, formatChord, parseChord } from './chord';
+
+export type { ChordNotation };
 
 const ROOT = /[A-Ha-h]/;
 
@@ -110,13 +112,21 @@ function consumeAccidental(input: string, at: number, notation: ChordNotation): 
   if (c === '#') {
     return '#';
   }
-  if (c === 'b' && notation === 'intl') {
+  if (c === 'b' && notation === 'en') {
     return 'b';
   }
   return '';
 }
 
-/** Human readable chord line, e.g. 'AaDeD' -> 'A a D e D'. */
-export function formatChords(chords: string[], separator = '  '): string {
-  return chords.join(separator);
+/** Splits a chord string and reads every chord in it. */
+export function parseChords(raw: string, notation: ChordNotation): Chord[] {
+  return tokenizeChords(raw, notation).map(token => parseChord(token, notation));
+}
+
+/**
+ * The chord line as printed, e.g. 'A  a  D  e  D'. The notation given here is
+ * the one to print IN, which need not be the one the song was written in.
+ */
+export function formatChords(chords: Chord[], notation: ChordNotation, separator = '  '): string {
+  return chords.map(chord => formatChord(chord, notation)).join(separator);
 }

@@ -56,11 +56,12 @@ to jest linia 10
 
 **Nagłówek** — linie `{klucz}wartość` na początku pliku. Obsługiwane klucze:
 
-| klucz      | wymagany | znaczenie             |
-| ---------- | -------- | --------------------- |
-| `{title}`  | tak      | tytuł piosenki        |
-| `{author}` | tak      | wykonawca             |
-| `{extra}`  | nie      | dopisek, np. `capo 2` |
+| klucz        | wymagany | znaczenie                               |
+| ------------ | -------- | --------------------------------------- |
+| `{title}`    | tak      | tytuł piosenki                          |
+| `{author}`   | tak      | wykonawca                               |
+| `{extra}`    | nie      | dopisek, np. `capo 2`                   |
+| `{notation}` | nie      | notacja akordów w pliku: `pl` albo `en` |
 
 Piosenka bez tytułu albo bez wykonawcy jest **nieprawidłowa** — nie trafia do PDF-a,
 a CLI wypisuje, czego brakuje. To samo dotyczy pliku bez tekstu.
@@ -135,10 +136,38 @@ W przykładzie wyżej linie 1–3 mają `AaDeD`, a linie 4–8 mają `abDeGEGE`.
 
 Zbity zapis akordów jest rozbijany na pojedyncze akordy: `AaDeD` → `A a D e D`,
 `abDeGEGE` → `a b D e G E G E`. Sufiksy zostają przy swoim dźwięku (`Amaj7`, `Dsus4`,
-`F#`, `C/G`). Domyślnie obowiązuje **notacja polska** — `b` to osobny akord (b-moll),
-nie bemol; `--notation intl` przełącza na międzynarodową, gdzie `Ab` to As-dur.
+`F#`, `C/G`).
 
----
+### Notacja akordów
+
+Śpiewnik rozumie dwie i tłumaczy między nimi automatycznie:
+
+|         | polska / niemiecka      | angielska / amerykańska |
+| ------- | ----------------------- | ----------------------- |
+| H       | `H`                     | `B`                     |
+| B       | `B`                     | `Bb`                    |
+| moll    | mała litera: `a`, `cis` | sufiks `m`: `Am`, `C#m` |
+| krzyżyk | `Cis`, `Fis`            | `C#`, `F#`              |
+| bemol   | `Des`, `Es`, `As`       | `Db`, `Eb`, `Ab`        |
+
+Wszystko po dźwięku — `7`, `sus4`, `maj7`, `add9`, `dim`, `aug`, bas po ukośniku —
+jest w obu notacjach takie samo i przechodzi bez zmian.
+
+**Skąd parser wie, w której notacji jest plik?** Kolejno:
+
+1. tag `{notation}pl` albo `{notation}en`, jeśli go napiszesz
+2. zgadywanie po akordach — `C#m` może być tylko angielskie, `cis`, `g` czy `H` tylko polskie
+3. gdy nic nie rozstrzyga (np. piosenka na `C F G`) — polska
+
+Notacja jest cechą **pliku**, nie całego śpiewnika, bo piosenki ściągasz z różnych
+miejsc. Jedna może być amerykańska, druga polska, i obie wydrukują się spójnie.
+
+**W czym drukować** — to już parametr generowania: `--notation pl` (domyślnie) albo
+`--notation en`. Niezależnie od tego, jak zapisałeś pliki.
+
+Uwaga na `B`: ten sam znak to w polskiej notacji B-dur (czyli b-moll z bemolem),
+a w angielskiej H-dur. Jeśli piosenka ma same akordy typu `B`, `E`, `A`, zgadywanie
+nie ma czego się złapać — wtedy dopisz `{notation}`.
 
 ## CLI
 
@@ -161,7 +190,7 @@ npm run pdf:print -- --page-size A5 --bold --chords right
 | `--page-size A4\|A5`                            | format strony (A5 ma automatycznie większą czcionkę)      |
 | `--chords right\|above\|none`                   | kolumna po prawej (domyślnie) / nad tekstem / bez akordów |
 | `--no-split-chords`                             | drukuj akordy dosłownie (`AaDeD`)                         |
-| `--notation pl\|intl`                           | notacja akordów                                           |
+| `--notation pl\|en`                             | notacja, w której **drukować** akordy (domyślnie `pl`)    |
 | `--font-size` / `--chord-size` / `--title-size` | rozmiary czcionek                                         |
 | `--bold`                                        | pogrubiony tekst piosenek                                 |
 | `--line-height`                                 | interlinia                                                |

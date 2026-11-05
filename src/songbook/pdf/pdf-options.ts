@@ -19,6 +19,10 @@ export interface PdfOptions {
   chordLayout: ChordLayout;
   /** Split `AaDeD` into `A  a  D  e  D` instead of printing it verbatim. */
   splitChords: boolean;
+  /**
+   * The notation the chords are PRINTED in. Each song declares (or betrays)
+   * the one it was written in; this is what it gets translated to.
+   */
   chordNotation: ChordNotation;
   lyricsFontSize: number;
   chordFontSize: number;

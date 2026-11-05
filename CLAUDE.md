@@ -67,6 +67,17 @@ required, `{extra}` is not; `{chords}` is an instrumental passage; `{ref}`,
 
 Each of these was deliberate. Changing one is fine — doing it by accident is not.
 
+**Chord notation is a property of the file, not of the run.** A songbook holds
+songs copied from all sorts of places, so each one declares with `{notation}` - or
+betrays by its chords - whether it is written Polish (`H`, `B` = B flat, minor in
+lower case) or English (`B`, `Bb`, minor with an `m`). The notation to PRINT in is
+the document's setting (`--notation`), and chords are translated at render time.
+`src/songbook/parser/chord.ts` holds the maps; the translation keeps the spelling
+it was given rather than picking an enharmonic, so `C#` stays `Cis` and `Db` stays
+`Des`. Watch the two traps: the same letter `B` means different notes in the two
+notations, which is the whole reason the source has to be known; and `asus4` is
+A minor with a sus4, not A flat followed by `us4`.
+
 **Chords carry forward.** Chords given once apply to every following line, across
 blocks, until the next `|`. This is the single most important rule of the format.
 
