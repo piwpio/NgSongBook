@@ -12,9 +12,8 @@ Niby nic ważnego, jedna noc|E B
 Niby nic, a jednak... Niby nic, a jednak|C#m A
 
 {ref}Miasto śpi, Ulic styk, Jedna z klisz, świata strych|E B
-Niby nic, jeden dzień, niby nic,|C#m G#m
-a jednak|E B
-A jednak|C#m A
+Niby nic, jeden dzień, niby nic, a jednak|C#m A
+A jednak|E B C#m A
 
 Niby nic takiego, dzień jak w negatywie|E B
 Gęsia skórka, miękki łuk twój, ja spode łba łypię|C#m G#m
