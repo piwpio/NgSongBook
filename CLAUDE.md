@@ -99,8 +99,11 @@ goes in whole or not at all - that is the point. A song that fits on one page ge
 most even split that still fits on that page (an exactly even split can push the
 leftovers onto a second page, which is worse); a longer song fills each page to the
 top so it takes as few as possible. The height estimate uses the same text the
-renderer will use, so the two cannot drift apart. Known rough edge: the last page of a
-multi-page song is not balanced.
+renderer will use, so the two cannot drift apart.
+
+The last page of a multi-page song is NOT balanced, and that is deliberate - Piotr was
+shown the alternative and preferred the leftovers packed into the left column. Do not
+"fix" it.
 
 **Chords above the words are spread along the line.** With n chords the i-th starts
 at i/n of the LYRICS line's measured width - one opens the line, none closes it. Built
