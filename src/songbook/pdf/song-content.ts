@@ -358,10 +358,13 @@ function buildLine(
     return chordText ? [{ text: chordText, style: SONG_STYLES.chords, margin }] : [];
   }
 
-  if (options.chordLayout === 'none' || !chordText) {
+  if (options.chordLayout === 'none') {
     return [{ text: lyrics, style: SONG_STYLES.lyrics, margin }];
   }
 
+  // A line with no chords still keeps the two column shape, so the words stay
+  // in the lyrics column instead of running out under the chords of the lines
+  // above and below it.
   if (options.chordLayout === 'right') {
     return [
       {
@@ -382,7 +385,11 @@ function buildLine(
     ];
   }
 
-  // 'above'
+  // 'above' - with no chords to show there is simply no line above the words.
+  if (!chordText) {
+    return [{ text: lyrics, style: SONG_STYLES.lyrics, margin }];
+  }
+
   return [
     { text: chordText, style: SONG_STYLES.chords, margin },
     { text: lyrics, style: SONG_STYLES.lyrics, margin },

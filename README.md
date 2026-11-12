@@ -136,6 +136,20 @@ jeszcze działa, z osobnym ostrzeżeniem.
 
 W przykładzie wyżej linie 1–3 mają `AaDeD`, a linie 4–8 mają `abDeGEGE`.
 
+**Samo `|` na końcu linii, bez akordów po nim**, znaczy „tu nie ma akordów" — i jest
+deklaracją tak samo jak każda inna, więc obowiązuje do następnego `|`:
+
+```
+raz|C G
+dwa            ← C G, odziedziczone
+trzy|          ← bez akordów
+cztery         ← nadal bez akordów
+pięć|a F       ← a F
+```
+
+Linia bez `|` dziedziczy, linia z `|` i akordami ustawia nowe, linia z samym `|`
+ustawia brak. Przydaje się na zakończenia śpiewane bez akompaniamentu.
+
 Zbity zapis akordów jest rozbijany na pojedyncze akordy: `AaDeD` → `A a D e D`,
 `abDeGEGE` → `a b D e G E G E`. Sufiksy zostają przy swoim dźwięku (`Amaj7`, `Dsus4`,
 `F#`, `C/G`).

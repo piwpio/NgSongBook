@@ -266,7 +266,10 @@ function parseBlocks(lines: string[], notation: ChordNotation, warnings: string[
     let lyrics = (hasOwnChords ? rawLine.slice(0, separatorAt) : rawLine).trim();
     const ownChords = hasOwnChords ? rawLine.slice(separatorAt + 1).trim() : '';
 
-    if (hasOwnChords && ownChords) {
+    // A bare `|` with nothing after it is a declaration too: it says this line
+    // has NO chords. Like any other declaration it then holds for the lines
+    // that follow, until the next `|`.
+    if (hasOwnChords) {
       lastChords = ownChords;
     }
 

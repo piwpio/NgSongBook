@@ -330,3 +330,38 @@ describe('chord notation of a song', () => {
     expect(parseSong('{title}T\n{author}A\n\nlinia|C F G', 'x.txt', { defaultNotation: 'en' }).meta.notation).toBe('en');
   });
 });
+
+describe('a bare | means no chords', () => {
+  const song = ['{title}T', '{author}A', '', 'linia 1|C G', 'linia 2', 'linia 3|', 'linia 4', 'linia 5|a F', 'linia 6'].join('\n');
+
+  it('clears the chords instead of inheriting them', () => {
+    const lines = parseSong(song, 'x.txt').blocks[0].lines;
+    expect(lines[2].rawChords).toBe('');
+    expect(lines[2].chords).toEqual([]);
+  });
+
+  it('keeps the silence for the lines that follow', () => {
+    const lines = parseSong(song, 'x.txt').blocks[0].lines;
+    expect(lines.map(line => line.rawChords)).toEqual(['C G', 'C G', '', '', 'a F', 'a F']);
+  });
+
+  it('counts as the line declaring its own chords', () => {
+    const lines = parseSong(song, 'x.txt').blocks[0].lines;
+    expect(lines.map(line => line.chordsExplicit)).toEqual([true, false, false, false, true, false]);
+  });
+
+  it('carries the silence across a blank line into the next verse', () => {
+    const parsed = parseSong('{title}T\n{author}A\n\nraz|C\ndwa|\n\ntrzy', 'x.txt');
+    expect(parsed.blocks[1].lines[0].rawChords).toBe('');
+  });
+
+  it('a line with trailing spaces after the pipe is still a bare pipe', () => {
+    const parsed = parseSong('{title}T\n{author}A\n\nraz|C\ndwa|   ', 'x.txt');
+    expect(parsed.blocks[0].lines[1].rawChords).toBe('');
+  });
+
+  it('leaves a line with no pipe at all inheriting, as before', () => {
+    const parsed = parseSong('{title}T\n{author}A\n\nraz|C\ndwa', 'x.txt');
+    expect(parsed.blocks[0].lines[1].rawChords).toBe('C');
+  });
+});

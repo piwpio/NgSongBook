@@ -80,6 +80,9 @@ A minor with a sus4, not A flat followed by `us4`.
 
 **Chords carry forward.** Chords given once apply to every following line, across
 blocks, until the next `|`. This is the single most important rule of the format.
+A bare `|` with nothing after it is a declaration as well - it says the line has no
+chords, and that silence carries forward exactly the same way. So a line without a
+`|` inherits, a line with `|chords` sets, and a line with a bare `|` clears.
 
 **A `{chords}` passage does not change the inherited chords.** After a bridge the
 next verse still carries the chords from before it.
