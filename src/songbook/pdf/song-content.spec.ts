@@ -179,3 +179,66 @@ describe('fitting long lines', () => {
     expect(Math.max(...sizes.filter(size => size <= 11))).toBeLessThan(11);
   });
 });
+
+/** The chord line is a columns node when the chords are spread along the line. */
+function chordRows(content: unknown[]): { width: number; text: string }[][] {
+  const rows: { width: number; text: string }[][] = [];
+  const walk = (node: unknown) => {
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+      return;
+    }
+    if (!node || typeof node !== 'object') {
+      return;
+    }
+    const columns = (node as { columns?: unknown }).columns;
+    if (Array.isArray(columns) && columns.every(c => typeof (c as { text?: unknown }).text === 'string')) {
+      rows.push(columns.map(c => c as { width: number; text: string }));
+    }
+    Object.values(node as Record<string, unknown>).forEach(walk);
+  };
+  walk(content);
+  return rows;
+}
+
+describe('spreading the chords along the line', () => {
+  const base = { chordLayout: 'above' as const, ...fakeMetrics };
+  // 'abcdefghij' is 10 glyphs, so 55pt wide at 11pt in the fake metrics.
+  const song = parseSong('{title}T\n{author}A\n\nabcdefghij|C G', 'x.txt');
+
+  it('gives each chord an equal slice of the line', () => {
+    const rows = chordRows(buildSongContent(song, resolvePdfOptions(base)).content);
+    expect(rows.length).toBe(1);
+    expect(rows[0].map(c => c.text)).toEqual(['C', 'G']);
+    expect(rows[0].map(c => c.width)).toEqual([27.5, 27.5]);
+  });
+
+  it('starts the line with a chord and never ends it with one', () => {
+    const rows = chordRows(buildSongContent(song, resolvePdfOptions(base)).content);
+    const total = rows[0].reduce((sum, c) => sum + c.width, 0);
+    // The slots cover the words, so the last chord starts before the line ends.
+    expect(total).toBe(55);
+  });
+
+  it('leaves a single chord alone - it is already at the start', () => {
+    const one = parseSong('{title}T\n{author}A\n\nabcdefghij|C', 'x.txt');
+    expect(chordRows(buildSongContent(one, resolvePdfOptions(base)).content).length).toBe(0);
+  });
+
+  it('runs the chords together rather than overlap them on a short line', () => {
+    const crowded = parseSong('{title}T\n{author}A\n\nab|C G a F e D', 'x.txt');
+    expect(chordRows(buildSongContent(crowded, resolvePdfOptions(base)).content).length).toBe(0);
+  });
+
+  it('can be turned off', () => {
+    const options = resolvePdfOptions({ ...base, spreadChords: false });
+    expect(chordRows(buildSongContent(song, options).content).length).toBe(0);
+  });
+
+  it('leaves a {chords} passage as one run - it has no line to spread along', () => {
+    const passage = parseSong('{title}T\n{author}A\n\n{chords}C G a F\nabcdefghij|C G', 'x.txt');
+    const rows = chordRows(buildSongContent(passage, resolvePdfOptions(base)).content);
+    expect(rows.length).toBe(1);
+    expect(rows[0].map(c => c.text)).toEqual(['C', 'G']);
+  });
+});

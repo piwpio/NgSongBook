@@ -102,6 +102,13 @@ top so it takes as few as possible. The height estimate uses the same text the
 renderer will use, so the two cannot drift apart. Known rough edge: the last page of a
 multi-page song is not balanced.
 
+**Chords above the words are spread along the line.** With n chords the i-th starts
+at i/n of the LYRICS line's measured width - one opens the line, none closes it. Built
+as a columns node of equal fixed slots, since a run of text cannot be positioned. It
+backs off to one run of text when a chord would not fit its slot: overlapping chords
+would say something false about where the change falls. A `{chords}` passage has no
+lyrics line to spread along and is always one run.
+
 **Long lines shrink rather than wrap.** A wrapped line is hard to follow while
 playing, and a narrow column wraps plenty of them. `requiredScale` solves, per line,
 how far the type must shrink for it to fit - per line and not from the widest one,

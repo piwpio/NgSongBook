@@ -207,6 +207,16 @@ wypełnia kolejne strony do pełna, żeby zająć ich jak najmniej.
 nad tekst, bo w wąskiej kolumnie nie ma miejsca na kolumnę akordów obok; `--chords right`
 nadal to wymusza, jeśli naprawdę chcesz.
 
+**Akordy nad tekstem są rozłożone równo po długości wersu.** Przy dwóch akordach
+pierwszy stoi na początku linii, drugi w jej połowie; przy trzech — na początku, w 1/3
+i w 2/3. Na początku zawsze jest akord, na końcu nigdy. Nie trafiają w konkretne sylaby,
+ale widać z grubsza, gdzie wypada zmiana.
+
+Jeśli akord nie zmieściłby się w swoim odcinku — bo wers jest krótki, a akordów dużo —
+cała linia wraca do zbitego zapisu przy lewej krawędzi, żeby akordy na siebie nie
+nachodziły i nie kłamały o miejscu zmiany. Pasaże `{chords}` zostają zbite zawsze, bo
+nie mają wersu, po którym miałyby się rozłożyć. `--no-spread-chords` wyłącza całość.
+
 **Długie linie nie zawijają się — kurczy się czcionka.** Zawinięta linia źle się czyta
 przy graniu, bo gubisz, do którego fragmentu należy akord. Generator mierzy najdłuższą
 linię piosenki i zmniejsza jej stopień pisma dokładnie tyle, ile trzeba, żeby zmieściła

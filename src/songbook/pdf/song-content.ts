@@ -1,6 +1,6 @@
 import { Content, ContentStack } from 'pdfmake/interfaces';
 import { Song, SongBlock, SongLine } from '../model/song.model';
-import { ChordNotation } from '../parser/chord';
+import { ChordNotation, formatChord } from '../parser/chord';
 import { formatChords } from '../parser/chord-tokenizer';
 import { PdfOptions, contentHeight, contentWidth, lineHeightOf, textColumnWidth } from './pdf-options';
 
@@ -477,10 +477,69 @@ function buildLine(
     return [{ text: lyrics, style: SONG_STYLES.lyrics, fontSize: options.lyricsFontSize, margin }];
   }
 
+  const spread = spreadChordLine(line, lyrics, options, lyricsWidth, indent, margin);
+
   return [
-    { text: chordText, style: SONG_STYLES.chords, fontSize: options.chordFontSize, margin },
+    spread ?? {
+      text: chordText,
+      style: SONG_STYLES.chords,
+      fontSize: options.chordFontSize,
+      margin,
+    },
     { text: lyrics, style: SONG_STYLES.lyrics, fontSize: options.lyricsFontSize, margin },
   ];
+}
+
+/**
+ * Lays the chords out evenly along the line they belong to: with n chords the
+ * i-th starts at i/n of the line's width. The first always opens the line and
+ * none ever closes it, so the eye can tell roughly where each change falls
+ * without the chords having to sit over the exact syllable.
+ *
+ * Returns null when it cannot be done honestly - no measurer, a single chord
+ * that is already at the start, or a slot too narrow for its chord. The caller
+ * then falls back to running the chords together, which is never wrong, only
+ * less informative.
+ */
+function spreadChordLine(
+  line: SongLine,
+  lyrics: string,
+  options: PdfOptions,
+  lyricsWidth: number,
+  indent: number,
+  margin: [number, number, number, number]
+): Content | null {
+  const measure = options.measureText;
+  if (!options.spreadChords || !measure || line.chords.length < 2 || !lyrics) {
+    return null;
+  }
+
+  const texts = line.chords.map(chord => formatChord(chord, options.chordNotation));
+  const room = lyricsWidth - indent;
+  const lineWidth = Math.min(measure(lyrics, options.lyricsFontSize, options.boldLyrics), room);
+  const slot = lineWidth / texts.length;
+  if (slot <= 0) {
+    return null;
+  }
+
+  // Every chord has to sit inside its own slot, or they would run into each
+  // other and say something false about where the change happens.
+  const fits = texts.every(text => measure(text, options.chordFontSize, true) + text.length * CHORD_SPACING + 2 <= slot);
+  if (!fits) {
+    return null;
+  }
+
+  return {
+    columns: texts.map(text => ({
+      text,
+      style: SONG_STYLES.chords,
+      fontSize: options.chordFontSize,
+      width: slot,
+      noWrap: true,
+    })),
+    columnGap: 0,
+    margin,
+  } as unknown as Content;
 }
 
 /** Upper-cases the opening letter, leaving anything that is not a letter alone. */

@@ -42,6 +42,13 @@ export interface PdfOptions {
   chordFontSize: number;
   titleFontSize: number;
   /**
+   * With the chords above the words, space them evenly along the line rather
+   * than running them together at its start: with n chords the i-th sits at
+   * i/n of the line's width. One always starts the line, none ever ends it.
+   */
+  spreadChords: boolean;
+
+  /**
    * Shrink a song's type just enough that its longest line fits the column
    * instead of wrapping. A wrapped line is hard to follow while playing, and a
    * narrow column wraps a lot of them.
@@ -104,6 +111,7 @@ const BASE = {
   lyricsColumnRatio: 0.5,
   boldLyrics: false,
   capitalizeBlocks: true,
+  spreadChords: true,
   fitLines: true,
   minFontScale: 0.8,
   songPerPage: true,
