@@ -102,6 +102,17 @@ top so it takes as few as possible. The height estimate uses the same text the
 renderer will use, so the two cannot drift apart. Known rough edge: the last page of a
 multi-page song is not balanced.
 
+**Long lines shrink rather than wrap.** A wrapped line is hard to follow while
+playing, and a narrow column wraps plenty of them. `requiredScale` solves, per line,
+how far the type must shrink for it to fit - per line and not from the widest one,
+because the chorus indent does not shrink with the type, so a line's room is
+`columnWidth - indent`. One scale for the whole song, applied as an inline
+`fontSize` since pdfmake styles are document-level and cannot vary per song. If the
+song would have to go below `minFontScale`, it is set in a SINGLE column instead,
+where the same lines fit at full size - a wide column of readable type beats a narrow
+one of 7pt. In the single-column layout there is nothing to fall back to, so the
+scale is clamped and the longest lines are left to wrap.
+
 **Verses are `unbreakable`** so a stanza is never torn across a page boundary.
 
 **The chord column is measured, not guessed.** The CLI measures lyrics with pdfkit

@@ -105,3 +105,77 @@ describe('two column layout', () => {
     expect(perPage[0]).toBeGreaterThanOrEqual(perPage[perPage.length - 1]);
   });
 });
+
+/** A stand-in for the real measurer: every glyph is half the font size wide. */
+const fakeMetrics = {
+  measureText: (text: string, fontSize: number) => text.length * fontSize * 0.5,
+  measureLineHeight: (fontSize: number) => fontSize * 1.172,
+};
+
+function songWithLine(line: string) {
+  return parseSong(`{title}T\n{author}A\n\n${line}|C G\nkrotka linia`, 'x.txt');
+}
+
+/** Every explicit fontSize in the tree, which is what carries the scaling. */
+function fontSizes(node: unknown, found: number[] = []): number[] {
+  if (Array.isArray(node)) {
+    node.forEach(child => fontSizes(child, found));
+  } else if (node && typeof node === 'object') {
+    const size = (node as { fontSize?: unknown }).fontSize;
+    if (typeof size === 'number') {
+      found.push(size);
+    }
+    Object.values(node as Record<string, unknown>).forEach(child => fontSizes(child, found));
+  }
+  return found;
+}
+
+describe('fitting long lines', () => {
+  const base = { layout: 'columns' as const, ...fakeMetrics };
+
+  it('leaves a song that already fits at full size', () => {
+    const song = songWithLine('krotka linia ktora sie miesci');
+    const content = buildSongContent(song, resolvePdfOptions(base)).content;
+    expect(Math.max(...fontSizes(content))).toBe(11);
+  });
+
+  it('shrinks a song just enough for its longest line, keeping two columns', () => {
+    const song = songWithLine('x'.repeat(48));
+    const options = resolvePdfOptions(base);
+    const content = buildSongContent(song, options).content;
+
+    expect(columnNodes(content).length).toBe(1);
+    const lyricSizes = fontSizes(content).filter(size => size < 11 && size > 9);
+    expect(lyricSizes.length).toBeGreaterThan(0);
+  });
+
+  it('gives a song one wide column rather than shrink it out of legibility', () => {
+    const song = songWithLine('x'.repeat(70));
+    const content = buildSongContent(song, resolvePdfOptions(base)).content;
+
+    expect(columnNodes(content).length).toBe(0);
+    expect(Math.max(...fontSizes(content))).toBe(11);
+  });
+
+  it('honours the minimum scale when deciding to fall back', () => {
+    const song = songWithLine('x'.repeat(70));
+    const generous = resolvePdfOptions({ ...base, minFontScale: 0.3 });
+    expect(columnNodes(buildSongContent(song, generous).content).length).toBe(1);
+  });
+
+  it('leaves the lines to wrap when fitting is turned off', () => {
+    const song = songWithLine('x'.repeat(70));
+    const content = buildSongContent(song, resolvePdfOptions({ ...base, fitLines: false })).content;
+
+    expect(columnNodes(content).length).toBe(1);
+    expect(Math.max(...fontSizes(content))).toBe(11);
+  });
+
+  it('counts the chorus indent, which does not shrink with the type', () => {
+    const wide = parseSong(`{title}T\n{author}A\n\n{ref}${'x'.repeat(44)}|C`, 'x.txt');
+    const options = resolvePdfOptions(base);
+    const sizes = fontSizes(buildSongContent(wide, options).content);
+    // 44 glyphs fit the bare column, but not once the indent is taken off it.
+    expect(Math.max(...sizes.filter(size => size <= 11))).toBeLessThan(11);
+  });
+});

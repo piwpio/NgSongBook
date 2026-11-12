@@ -38,6 +38,9 @@ Common options:
                               the chords above them. A verse is never split
                               between the columns or across a page.
   --columns N                 how many columns --layout columns uses (default 2)
+  --no-fit-lines              let long lines wrap instead of shrinking the song
+                              so its longest line fits the column on one line
+  --min-font-scale N          how far --fit-lines may shrink the type (default 0.72)
   --chords right|above|none   right hand column (default) / above the lyrics / no chords
   --no-split-chords           print chords exactly as written (AaDeD instead of A  a  D  e  D)
   --notation pl|en            notation to PRINT the chords in (default pl).
@@ -102,6 +105,8 @@ function pdfOptionsFrom(flags: ParsedArgs['flags']): Partial<PdfOptions> {
     chordFontSize: num(flags, 'chord-size'),
     titleFontSize: num(flags, 'title-size'),
     boldLyrics: bool(flags, 'bold'),
+    fitLines: bool(flags, 'fit-lines'),
+    minFontScale: num(flags, 'min-font-scale'),
     capitalizeBlocks: bool(flags, 'capitalize'),
     lineHeight: num(flags, 'line-height'),
     title: str(flags, 'title'),

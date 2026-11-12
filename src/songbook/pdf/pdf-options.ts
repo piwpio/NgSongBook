@@ -41,6 +41,19 @@ export interface PdfOptions {
   lyricsFontSize: number;
   chordFontSize: number;
   titleFontSize: number;
+  /**
+   * Shrink a song's type just enough that its longest line fits the column
+   * instead of wrapping. A wrapped line is hard to follow while playing, and a
+   * narrow column wraps a lot of them.
+   */
+  fitLines: boolean;
+  /**
+   * How far `fitLines` may shrink the type. A song that would need more than
+   * this is set in a single column instead, where the same lines fit at full
+   * size; in a single column already, the longest lines are left to wrap.
+   */
+  minFontScale: number;
+
   /** Print lyrics in bold - handy on A5 / when photocopying. */
   boldLyrics: boolean;
   /**
@@ -91,6 +104,8 @@ const BASE = {
   lyricsColumnRatio: 0.5,
   boldLyrics: false,
   capitalizeBlocks: true,
+  fitLines: true,
+  minFontScale: 0.8,
   songPerPage: true,
   title: 'Śpiewnik Złotego',
 };

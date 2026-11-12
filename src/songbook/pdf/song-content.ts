@@ -32,17 +32,97 @@ export function buildSongContent(song: Song, options: SongContentOptions): SongC
 
   if (options.layout === 'columns') {
     const width = textColumnWidth(options);
-    const blocks = song.blocks.map(block => ({
-      node: buildBlock(block, options, width, source) as Content,
-      height: estimateBlockHeight(block, options, source, width),
-    }));
-    const pages = layOutColumns(blocks, options, estimateHeaderHeight(song, options), width);
-    return { content: [...header, ...pages], titleNode: header[0] };
+    const scale = requiredScale(song, options, width, source);
+
+    // A song whose lines would have to shrink this far is the wrong shape for
+    // two columns: set in one, the same lines fit at full size. Better a wide
+    // column of readable type than a narrow one of 7pt.
+    if (scale >= options.minFontScale) {
+      const fitted = withScale(options, scale);
+      const blocks = song.blocks.map(block => ({
+        node: buildBlock(block, fitted, width, source) as Content,
+        height: estimateBlockHeight(block, fitted, source, width),
+      }));
+      const pages = layOutColumns(blocks, fitted, estimateHeaderHeight(song, options), width);
+      return { content: [...header, ...pages], titleNode: header[0] };
+    }
   }
 
   const lyricsWidth = lyricsColumnWidth(song, options);
-  const blocks = song.blocks.map(block => buildBlock(block, options, lyricsWidth, source));
+  // Nothing to fall back to here, so the type is clamped and the longest lines
+  // are allowed to wrap rather than shrink out of legibility.
+  const scale = Math.max(options.minFontScale, requiredScale(song, options, lyricsWidth, source));
+  const fitted = withScale(options, scale);
+  const blocks = song.blocks.map(block => buildBlock(block, fitted, lyricsWidth, source));
   return { content: [...header, ...blocks], titleNode: header[0] };
+}
+
+/**
+ * How far the song's type has to shrink for its longest line to fit the column
+ * on one line. 1 means it already fits.
+ *
+ * A wrapped line is awkward to follow while playing - the eye loses the chord
+ * it belongs to - and a two-column page wraps a lot of them. Rather than let
+ * them wrap, the whole song is set a little smaller, which also fits more of it
+ * per column. One scale for the whole song, so the type never changes size in
+ * the middle of it. Songs that already fit are left exactly as they were.
+ */
+function requiredScale(song: Song, options: PdfOptions, available: number, source: ChordNotation): number {
+  const measure = options.measureText;
+  if (!options.fitLines || !measure || available <= 0) {
+    return 1;
+  }
+
+  // Solved per line rather than from the widest one: the chorus indent does not
+  // shrink with the type, so the room a line has is `available - indent` and the
+  // scale it needs is room / its own width. The smallest wins.
+  let scale = 1;
+  const fit = (width: number, room: number) => {
+    if (width > 0 && room > 0 && width > room) {
+      scale = Math.min(scale, room / width);
+    }
+  };
+
+  for (const block of song.blocks) {
+    const indent = block.kind === 'chorus' ? options.chorusIndent : 0;
+    const room = (available - indent) * FIT_MARGIN;
+
+    block.lines.forEach((line, index) => {
+      const chordText = renderChords(line, options, source);
+      const chordWidth = chordText ? measure(chordText, options.chordFontSize, true) + chordText.length * CHORD_SPACING : 0;
+
+      if (line.chordsOnly) {
+        fit(chordWidth, room);
+        return;
+      }
+
+      const opening = index === 0 && options.capitalizeBlocks;
+      const lyrics = opening ? capitalizeFirst(line.lyrics) : line.lyrics;
+      fit(measure(lyrics, options.lyricsFontSize, options.boldLyrics), room);
+
+      // With the chords beside the words they have a column of their own; only
+      // when they sit above does their width have to fit here too.
+      if (options.chordLayout === 'above') {
+        fit(chordWidth, room);
+      }
+    });
+  }
+
+  return scale;
+}
+
+/** A hair of slack, so rounding does not put a line one point over the edge. */
+const FIT_MARGIN = 0.995;
+
+function withScale(options: PdfOptions, scale: number): PdfOptions {
+  if (scale >= 1) {
+    return options;
+  }
+  return {
+    ...options,
+    lyricsFontSize: options.lyricsFontSize * scale,
+    chordFontSize: options.chordFontSize * scale,
+  };
 }
 
 /** How much of a column is left once the safety margin is taken off. */
@@ -355,11 +435,11 @@ function buildLine(
   // A `{chords}` passage has no lyrics to sit beside, so it goes where the
   // words would be rather than out in the chord column.
   if (line.chordsOnly) {
-    return chordText ? [{ text: chordText, style: SONG_STYLES.chords, margin }] : [];
+    return chordText ? [{ text: chordText, style: SONG_STYLES.chords, fontSize: options.chordFontSize, margin }] : [];
   }
 
   if (options.chordLayout === 'none') {
-    return [{ text: lyrics, style: SONG_STYLES.lyrics, margin }];
+    return [{ text: lyrics, style: SONG_STYLES.lyrics, fontSize: options.lyricsFontSize, margin }];
   }
 
   // A line with no chords still keeps the two column shape, so the words stay
@@ -369,12 +449,19 @@ function buildLine(
     return [
       {
         columns: [
-          { text: lyrics, style: SONG_STYLES.lyrics, width: lyricsWidth, margin },
+          {
+            text: lyrics,
+            style: SONG_STYLES.lyrics,
+            fontSize: options.lyricsFontSize,
+            width: lyricsWidth,
+            margin,
+          },
           {
             // Left aligned so the chords form one straight vertical column
             // the eye can run down, instead of a ragged right edge.
             text: chordText,
             style: SONG_STYLES.chords,
+            fontSize: options.chordFontSize,
             width: '*',
             alignment: 'left',
             noWrap: false,
@@ -387,12 +474,12 @@ function buildLine(
 
   // 'above' - with no chords to show there is simply no line above the words.
   if (!chordText) {
-    return [{ text: lyrics, style: SONG_STYLES.lyrics, margin }];
+    return [{ text: lyrics, style: SONG_STYLES.lyrics, fontSize: options.lyricsFontSize, margin }];
   }
 
   return [
-    { text: chordText, style: SONG_STYLES.chords, margin },
-    { text: lyrics, style: SONG_STYLES.lyrics, margin },
+    { text: chordText, style: SONG_STYLES.chords, fontSize: options.chordFontSize, margin },
+    { text: lyrics, style: SONG_STYLES.lyrics, fontSize: options.lyricsFontSize, margin },
   ];
 }
 

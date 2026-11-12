@@ -175,6 +175,17 @@ wypełnia kolejne strony do pełna, żeby zająć ich jak najmniej.
 nad tekst, bo w wąskiej kolumnie nie ma miejsca na kolumnę akordów obok; `--chords right`
 nadal to wymusza, jeśli naprawdę chcesz.
 
+**Długie linie nie zawijają się — kurczy się czcionka.** Zawinięta linia źle się czyta
+przy graniu, bo gubisz, do którego fragmentu należy akord. Generator mierzy najdłuższą
+linię piosenki i zmniejsza jej stopień pisma dokładnie tyle, ile trzeba, żeby zmieściła
+się w jednej linii. Skala jest jedna na całą piosenkę, więc tekst nie zmienia wielkości
+w środku, a piosenki, które i tak się mieszczą, zostają nietknięte.
+
+Jeśli piosenka musiałaby zejść poniżej `--min-font-scale` (domyślnie 0.8, czyli 80%
+wyjściowego stopnia), dostaje **jedną szeroką kolumnę** zamiast dwóch — tam te same linie
+mieszczą się w pełnym rozmiarze. Lepsza szeroka kolumna czytelnym pismem niż wąska
+siedmiopunktowym. `--no-fit-lines` wyłącza całość i pozwala linii zawinąć się jak dawniej.
+
 ### Notacja akordów
 
 Śpiewnik rozumie dwie i tłumaczy między nimi automatycznie:
