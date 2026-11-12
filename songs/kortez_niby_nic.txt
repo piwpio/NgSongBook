@@ -1,12 +1,12 @@
 {author}Kortez
 {title}Niby nic
 
-Niby nic takiego, w mieście pusta droga|E B
+{ver1}Niby nic takiego, w mieście pusta droga|E B
 Nocne loty, wódka w bramie, w końcu nikt nie woła|C#m G#m
 Łajzy, półbogowie, żaden sobie już nie ufa|E B
 Ma na myśli budę i spuszcza je z łańcucha|C#m G#m
 
-Niby nic takiego, jedna noc|E B
+{ver2}Niby nic takiego, jedna noc|E B
 Niby nic wielkiego, jedna noc|C#m G#m
 Niby nic ważnego, jedna noc|E B
 Niby nic, a jednak... Niby nic, a jednak|C#m A
@@ -15,19 +15,19 @@ Niby nic, a jednak... Niby nic, a jednak|C#m A
 Niby nic, jeden dzień, niby nic, a jednak|C#m A
 A jednak|E B C#m A
 
-Niby nic takiego, dzień jak w negatywie|E B
-Gęsia skórka, miękki łuk twój, ja spode łba łypię|C#m G#m
-Gdy cię gryzę w szyję, Ty udajesz że nie boli|E B
-Zasypiamy kiedy budzą się żurawie domy|C#m G#m
+{ver1}Niby nic takiego, dzień jak w negatywie
+Gęsia skórka, miękki łuk twój, ja spode łba łypię
+Gdy cię gryzę w szyję, Ty udajesz że nie boli
+Zasypiamy kiedy budzą się żurawie domy
 
-Niby nic takiego, jedna noc|E B
-Niby nic wielkiego, jedna noc|C#m G#m
-Niby nic ważnego, jedna noc|E B
-Niby nic, a jednak... Niby nic, a jednak|C#m A
+{ver2}Niby nic takiego, jedna noc
+Niby nic wielkiego, jedna noc
+Niby nic ważnego, jedna noc
+Niby nic, a jednak... Niby nic, a jednak
 
 {ref}
 
-Niby nic takiego, niby nic.|E B
-I niby nic wielkiego, niby nic.|C#m G#m
-Niby nic ważnego, niby nic.|E B
-Niby nic, a jednak, niby nic, a jednak|C#m A
+{ver2}Niby nic takiego, niby nic.
+I niby nic wielkiego, niby nic.
+Niby nic ważnego, niby nic.
+Niby nic, a jednak, niby nic, a jednak

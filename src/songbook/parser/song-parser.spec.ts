@@ -365,3 +365,72 @@ describe('a bare | means no chords', () => {
     expect(parsed.blocks[0].lines[1].rawChords).toBe('C');
   });
 });
+
+describe('{ver} - a verse whose chords repeat', () => {
+  const song = ['{title}T', '{author}A', '', '{ver1}raz|C', 'dwa|Dm', 'trzy|F G', '', '{ver1}cztery', 'piec', 'szesc', '', '{ver1}'].join(
+    '\n'
+  );
+
+  it('lends its chords to a later verse with new words', () => {
+    const parsed = parseSong(song, 'x.txt');
+    expect(parsed.valid).toBe(true);
+    expect(parsed.blocks[1].lines.map(l => l.lyrics)).toEqual(['cztery', 'piec', 'szesc']);
+    expect(parsed.blocks[1].lines.map(l => l.rawChords)).toEqual(['C', 'Dm', 'F G']);
+  });
+
+  it('prints the whole verse again when the marker stands alone', () => {
+    const last = parseSong(song, 'x.txt').blocks[2];
+    expect(last.isRepeat).toBe(true);
+    expect(last.lines.map(l => l.lyrics)).toEqual(['raz', 'dwa', 'trzy']);
+  });
+
+  it('stays a verse, so it gets none of the chorus indent', () => {
+    expect(parseSong(song, 'x.txt').blocks.every(b => b.kind === 'verse')).toBe(true);
+  });
+
+  it('keeps numbered patterns apart', () => {
+    const parsed = parseSong('{title}T\n{author}A\n\n{ver1}a|C\n\n{ver2}b|G\n\n{ver1}c\n\n{ver2}d', 'x.txt');
+    expect(parsed.blocks.map(b => b.lines[0].rawChords)).toEqual(['C', 'G', 'C', 'G']);
+  });
+
+  it('repeats the pattern when the new verse is longer, and says so', () => {
+    const parsed = parseSong('{title}T\n{author}A\n\n{ver1}a|C\nb|Dm\n\n{ver1}c\nd\ne\nf', 'x.txt');
+    expect(parsed.blocks[1].lines.map(l => l.rawChords)).toEqual(['C', 'Dm', 'C', 'Dm']);
+    expect(parsed.warnings.some(w => w.includes('pattern repeats'))).toBe(true);
+  });
+
+  it('lets a line keep chords of its own, pattern or not', () => {
+    const parsed = parseSong('{title}T\n{author}A\n\n{ver1}a|C\nb|Dm\n\n{ver1}c\nd|a', 'x.txt');
+    expect(parsed.blocks[1].lines.map(l => l.rawChords)).toEqual(['C', 'a']);
+  });
+
+  it('lets a bare | silence a line inside a borrowed verse', () => {
+    const parsed = parseSong('{title}T\n{author}A\n\n{ver1}a|C\nb|Dm\n\n{ver1}c\nd|', 'x.txt');
+    expect(parsed.blocks[1].lines.map(l => l.rawChords)).toEqual(['C', '']);
+  });
+
+  it('rejects a {ver} recalled before it was written out', () => {
+    const parsed = parseSong('{title}T\n{author}A\n\n{ver2}\n\nlinia|C', 'x.txt');
+    expect(parsed.valid).toBe(false);
+    expect(parsed.errors).toEqual(['{ver2} is used before it is written out.']);
+  });
+
+  it('does not mistake {ver1} in the header for a meta key', () => {
+    const parsed = parseSong('{title}T\n{author}A\n{ver1}od razu zwrotka|C', 'x.txt');
+    expect(parsed.meta).toMatchObject({ title: 'T', author: 'A' });
+    expect(parsed.blocks[0].verseKey).toEqual('1');
+  });
+
+  it('accepts the bracket spelling with a warning', () => {
+    const parsed = parseSong('{title}T\n{author}A\n\n[ver1]a|C\n\n[ver1]b', 'x.txt');
+    expect(parsed.valid).toBe(true);
+    expect(parsed.blocks[1].lines[0].rawChords).toEqual('C');
+    expect(parsed.warnings.filter(w => w.includes('square brackets')).length).toBe(1);
+  });
+
+  it('leaves the running chords alone, like a chorus repeat does', () => {
+    const parsed = parseSong('{title}T\n{author}A\n\n{ver1}a|C\n\nzwykla|G\n\n{ver1}b\n\npotem', 'x.txt');
+    expect(parsed.blocks[2].lines[0].rawChords).toEqual('C');
+    expect(parsed.blocks[3].lines[0].rawChords).toEqual('G');
+  });
+});

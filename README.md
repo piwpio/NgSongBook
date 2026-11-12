@@ -129,6 +129,38 @@ po powtórce obowiązują nadal akordy sprzed refrenu.
 Klamry są formą właściwą. Refren zapisany słowem (`ref.`, `refren`, `chorus`) też
 jeszcze działa, z osobnym ostrzeżeniem.
 
+**Zwrotki grane tak samo** — `{ver}`, `{ver1}`, `{ver2}`, … . Działa jak `{ref}`, tylko
+bez wcięcia, i dochodzi jedna możliwość więcej:
+
+- `{ver1} tekst zwrotki` **pierwszy raz** — tu zapisujesz zwrotkę razem z akordami.
+  To jest wzór.
+- `{ver1} nowy tekst` **kolejny raz** — nowa zwrotka bierze akordy ze wzoru, linia po
+  linii. Nie przepisujesz ich.
+- samo `{ver1}` w osobnej linii — zwrotka jest powtarzana w całości, z tekstem.
+
+```
+{ver1}Dziś prawdziwych cyganów już nie ma|C
+Bo ich Hitler zabił w obozie|Dm
+Teraz tylko są same podróby|F G
+Jak Don Vasyl de Roma.|C G
+
+{ver1}Moja matka była cyganem
+A ja mam ślicznego pindola
+To po matce go mam, a nie po ojcu,
+Bo ojciec miał brzydkiego.
+```
+
+`{ver}` bez numeru to osobny wzór, nie alias `{ver1}` — tak samo jak przy refrenach.
+Jeśli piosenka ma tylko jeden powtarzalny przebieg, wystarczy samo `{ver}`; numery są
+po to, żeby rozróżnić kilka różnych. Gdy oznaczysz zwrotkę numerem, pod którym nic nie
+zapisałeś, i nie ma ona własnych akordów, parser o tym ostrzeże — to zwykle pomyłka
+w numerze.
+
+Linia z własnym `|` zawsze wygrywa ze wzorem — także samo `|`, jeśli akurat ta linia ma
+być bez akordów. Jeśli nowa zwrotka ma **więcej linii** niż wzór, wzór zapętla się od
+początku i parser o tym ostrzega, bo zwykle to literówka. Przywołanie numeru, którego
+nie zapisałeś, jest błędem.
+
 **Akordy** — po znaku `|` na końcu linii. Kluczowa zasada:
 
 > Akordy podane raz obowiązują w każdej kolejnej linii, aż do następnego `|`.

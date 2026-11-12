@@ -43,6 +43,8 @@ export interface SongBlock {
   kind: SongBlockKind;
   /** Which chorus this is: '' for `{ref}`, '1' for `{ref1}`, '5' for `{ref5}`. */
   chorusKey?: string;
+  /** Which tagged verse this is: '' for `{ver}`, '1' for `{ver1}`. */
+  verseKey?: string;
   /** True when this chorus came from a bare `[ref]` line, not from the original one. */
   isRepeat?: boolean;
   lines: SongLine[];

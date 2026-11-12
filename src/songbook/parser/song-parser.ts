@@ -1,4 +1,4 @@
-import { Song, SongBlock, SongMeta } from '../model/song.model';
+import { Song, SongBlock, SongBlockKind, SongMeta } from '../model/song.model';
 import { ChordNotation, detectNotation, parseNotation } from './chord';
 import { parseChords, tokenizeChords } from './chord-tokenizer';
 
@@ -22,6 +22,14 @@ export const SONG_FORMAT = {
   chorusMarker: /^\{ref(\d*)}\s*/i,
   /** The same marker in square brackets - accepted, warned about. */
   chorusMarkerBrackets: /^\[ref(\d*)]\s*/i,
+  /**
+   * `{ver}`, `{ver1}`, `{ver7}` - a verse whose chords repeat. Written out with
+   * lyrics the first time, it becomes the pattern; a later `{ver1}` with new
+   * words borrows that pattern line by line, and `{ver1}` on its own prints the
+   * verse again. Same idea as `{ref}`, without the chorus indent.
+   */
+  verseMarker: /^\{ver(\d*)}\s*/i,
+  verseMarkerBrackets: /^\[ver(\d*)]\s*/i,
   /** Spelled out as a word, from before the tag syntax - accepted, warned about. */
   chorusMarkerWord: /^(?:ref|refren|refr|chorus)(\d*)(?:\.|:|\s|$)\s*/i,
   /** `{chords}` followed by chords - an instrumental line with no lyrics. */
@@ -30,7 +38,7 @@ export const SONG_FORMAT = {
    * Keys that look like meta but are not: they open the body of the song, so
    * the meta scan has to stop when it meets one. `ref`, `ref1`, `ref2`, ...
    */
-  bodyMarkerKey: /^(?:ref\d*|chords)$/i,
+  bodyMarkerKey: /^(?:ref\d*|ver\d*|chords)$/i,
   knownMetaKeys: ['title', 'author', 'extra', 'notation'] as const,
 } as const;
 
@@ -148,8 +156,9 @@ function readMeta(lines: string[], warnings: string[]): { meta: Record<string, s
 
 type TagSyntax = 'braces' | 'brackets' | 'word';
 
-interface ChorusMarker {
-  /** Which chorus: '' for a bare `{ref}`, otherwise the number written. */
+interface BlockMarker {
+  kind: SongBlockKind;
+  /** Which one: '' for a bare `{ref}` / `{ver}`, otherwise the number written. */
   key: string;
   /** What follows the marker - empty means "repeat", non-empty means "write out". */
   rest: string;
@@ -161,21 +170,25 @@ function chorusKeyOf(digits: string): string {
   return digits ? String(Number(digits)) : '';
 }
 
-function chorusLabel(key: string): string {
-  return key ? `{ref${key}}` : '{ref}';
+function blockLabel(kind: SongBlockKind, key: string): string {
+  const tag = kind === 'chorus' ? 'ref' : 'ver';
+  return `{${tag}${key}}`;
 }
 
-function matchChorusMarker(line: string): ChorusMarker | null {
-  const forms: [RegExp, TagSyntax][] = [
-    [SONG_FORMAT.chorusMarker, 'braces'],
-    [SONG_FORMAT.chorusMarkerBrackets, 'brackets'],
-    [SONG_FORMAT.chorusMarkerWord, 'word'],
+function matchBlockMarker(line: string): BlockMarker | null {
+  const forms: [RegExp, SongBlockKind, TagSyntax][] = [
+    [SONG_FORMAT.chorusMarker, 'chorus', 'braces'],
+    [SONG_FORMAT.verseMarker, 'verse', 'braces'],
+    [SONG_FORMAT.chorusMarkerBrackets, 'chorus', 'brackets'],
+    [SONG_FORMAT.verseMarkerBrackets, 'verse', 'brackets'],
+    [SONG_FORMAT.chorusMarkerWord, 'chorus', 'word'],
   ];
 
-  for (const [pattern, syntax] of forms) {
+  for (const [pattern, kind, syntax] of forms) {
     const match = pattern.exec(line);
     if (match) {
       return {
+        kind,
         key: chorusKeyOf(match[1]),
         rest: line.slice(match[0].length).trim(),
         syntax,
@@ -198,8 +211,13 @@ function parseBlocks(lines: string[], notation: ChordNotation, warnings: string[
   let current: SongBlock | null = null;
   /** Every chorus written out so far, by number, so `{ref2}` can come back. */
   const choruses = new Map<string, SongBlock>();
+  /** Every tagged verse written out so far - the chord patterns to borrow. */
+  const verses = new Map<string, SongBlock>();
   /** Chords carry over line after line, and across blocks, until replaced. */
   let lastChords = '';
+  /** The verse the open block is borrowing its chords from, if any. */
+  let pattern: SongBlock | null = null;
+  let patternAt = 0;
 
   const closeBlock = () => {
     if (current && current.lines.length > 0) {
@@ -207,8 +225,27 @@ function parseBlocks(lines: string[], notation: ChordNotation, warnings: string[
       if (current.kind === 'chorus' && !current.isRepeat && current.chorusKey !== undefined) {
         choruses.set(current.chorusKey, current);
       }
+      if (current.kind === 'verse' && !current.isRepeat && current.verseKey !== undefined) {
+        // Tagged, but with nothing to borrow and nothing of its own - almost
+        // always a number that does not match the verse it was meant to copy.
+        if (!pattern && !current.lines.some(line => line.chordsExplicit)) {
+          warnings.push(`${blockLabel('verse', current.verseKey)} has no chords of its own and no verse of that number to borrow from.`);
+        }
+        if (pattern && pattern.lines.length !== current.lines.length) {
+          warnings.push(
+            `${blockLabel('verse', current.verseKey)} has ${current.lines.length} lines but its chords were written for ${
+              pattern.lines.length
+            } - the pattern repeats to fill it.`
+          );
+        }
+        if (!verses.has(current.verseKey)) {
+          verses.set(current.verseKey, current);
+        }
+      }
     }
     current = null;
+    pattern = null;
+    patternAt = 0;
   };
 
   for (const rawLine of lines) {
@@ -219,17 +256,17 @@ function parseBlocks(lines: string[], notation: ChordNotation, warnings: string[
       continue;
     }
 
-    const marker = matchChorusMarker(trimmed);
+    const marker = matchBlockMarker(trimmed);
 
-    // A marker alone on its line is not lyrics - it prints that chorus again.
+    // A marker alone on its line is not lyrics - it prints that block again.
     if (marker && marker.rest === '') {
       closeBlock();
       noteSyntax(marker.syntax, warnings);
-      const defined = choruses.get(marker.key);
+      const defined = (marker.kind === 'chorus' ? choruses : verses).get(marker.key);
       if (defined) {
         blocks.push(repeatOf(defined));
       } else {
-        errors.push(`${chorusLabel(marker.key)} is used before it is written out.`);
+        errors.push(`${blockLabel(marker.kind, marker.key)} is used before it is written out.`);
       }
       continue;
     }
@@ -274,26 +311,43 @@ function parseBlocks(lines: string[], notation: ChordNotation, warnings: string[
     }
 
     if (!current) {
-      // A marker with lyrics after it opens - and defines - that chorus.
-      const opening = matchChorusMarker(lyrics);
+      const opening = matchBlockMarker(lyrics);
       if (opening && opening.rest !== '') {
         noteSyntax(opening.syntax, warnings);
-        if (choruses.has(opening.key)) {
-          // A chorus is written out once and then recalled; two texts under one
-          // number means one of them would silently never be printed.
-          errors.push(`${chorusLabel(opening.key)} is written out twice - a chorus may only be written out once.`);
-        }
         lyrics = opening.rest;
-        current = { kind: 'chorus', chorusKey: opening.key, lines: [] };
+
+        if (opening.kind === 'chorus') {
+          if (choruses.has(opening.key)) {
+            // A chorus is written out once and then recalled; two texts under
+            // one number means one would silently never be printed.
+            errors.push(`${blockLabel('chorus', opening.key)} is written out twice - a chorus may only be written out once.`);
+          }
+          current = { kind: 'chorus', chorusKey: opening.key, lines: [] };
+        } else {
+          // The first `{ver1}` writes the pattern down; every later one borrows
+          // it for new words. That is the point of tagging a verse at all.
+          pattern = verses.get(opening.key) ?? null;
+          patternAt = 0;
+          current = { kind: 'verse', verseKey: opening.key, lines: [] };
+        }
       } else {
         current = { kind: 'verse', lines: [] };
       }
     }
 
+    // A line that declares anything of its own - chords or a bare `|` - keeps
+    // what it declared. Otherwise a borrowed pattern wins over what the running
+    // chords happen to be, and the pattern repeats if the verse is longer.
+    let rawChords = lastChords;
+    if (pattern && !hasOwnChords && pattern.lines.length > 0) {
+      rawChords = pattern.lines[patternAt % pattern.lines.length].rawChords;
+    }
+    patternAt += 1;
+
     current.lines.push({
       lyrics,
-      rawChords: lastChords,
-      chords: parseChords(lastChords, notation),
+      rawChords,
+      chords: parseChords(rawChords, notation),
       chordsExplicit: hasOwnChords && ownChords.length > 0,
     });
   }
@@ -310,12 +364,11 @@ const WORD_CHORUS_WARNING = 'Chorus marked with a bare word - write {ref} instea
  * running chord state is left alone, so whatever follows picks up where the
  * verse before the chorus left off.
  */
-function repeatOf(chorus: SongBlock): SongBlock {
+function repeatOf(block: SongBlock): SongBlock {
   return {
-    kind: 'chorus',
-    chorusKey: chorus.chorusKey,
+    ...block,
     isRepeat: true,
-    lines: chorus.lines.map(line => ({ ...line, chords: [...line.chords] })),
+    lines: block.lines.map(line => ({ ...line, chords: [...line.chords] })),
   };
 }
 
