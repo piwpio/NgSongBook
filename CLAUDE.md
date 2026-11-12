@@ -89,6 +89,16 @@ means a minor chord, so `a` turned into `A` would be a different chord. The bloc
 capitalisation applies to the first line that _has lyrics_, nothing else. There is
 a test guarding this.
 
+**The two-column layout deals the verses out by hand.** pdfmake's `columns` is a
+fixed side-by-side layout and does not pour text from one column into the next, so
+`layOutColumns` measures each verse against the column height and assigns it. A verse
+goes in whole or not at all - that is the point. A song that fits on one page gets the
+most even split that still fits on that page (an exactly even split can push the
+leftovers onto a second page, which is worse); a longer song fills each page to the
+top so it takes as few as possible. The height estimate uses the same text the
+renderer will use, so the two cannot drift apart. Known rough edge: the last page of a
+multi-page song is not balanced.
+
 **Verses are `unbreakable`** so a stanza is never torn across a page boundary.
 
 **The chord column is measured, not guessed.** The CLI measures lyrics with pdfkit

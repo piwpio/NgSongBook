@@ -5,6 +5,7 @@ import { TDocumentDefinitions } from 'pdfmake/interfaces';
 
 import {
   ChordLayout,
+  PageLayout,
   PageSize,
   PdfOptions,
   PrintHistory,
@@ -21,7 +22,7 @@ import {
 } from '../../src/songbook';
 import { ChordNotation } from '../../src/songbook/parser/chord-tokenizer';
 import { ParsedArgs, bool, list, num, parseArgs, str } from './args';
-import { measureRoboto, robotoFonts } from './fonts';
+import { measureRoboto, measureRobotoLineHeight, robotoFonts } from './fonts';
 import { HISTORY_FILE, SONGS_DIR, ensureDir, findProjectRoot, loadSongs, timestampSlug } from './workspace';
 
 const USAGE = `
@@ -33,6 +34,10 @@ Songbook - PDF generator
 
 Common options:
   --page-size A4|A5           page format (default A4)
+  --layout single|columns     one column (default) or two columns of lyrics with
+                              the chords above them. A verse is never split
+                              between the columns or across a page.
+  --columns N                 how many columns --layout columns uses (default 2)
   --chords right|above|none   right hand column (default) / above the lyrics / no chords
   --no-split-chords           print chords exactly as written (AaDeD instead of A  a  D  e  D)
   --notation pl|en            notation to PRINT the chords in (default pl).
@@ -81,8 +86,15 @@ function pdfOptionsFrom(flags: ParsedArgs['flags']): Partial<PdfOptions> {
     throw new Error(`Unsupported chord layout: ${chords} (allowed: above, right, none)`);
   }
 
+  const layout = str(flags, 'layout') as PageLayout | undefined;
+  if (layout && layout !== 'single' && layout !== 'columns') {
+    throw new Error(`Unsupported layout: ${layout} (allowed: single, columns)`);
+  }
+
   return {
     pageSize,
+    layout,
+    columnCount: num(flags, 'columns'),
     chordLayout: chords,
     splitChords: bool(flags, 'split-chords'),
     chordNotation: str(flags, 'notation') as ChordNotation | undefined,
@@ -93,8 +105,10 @@ function pdfOptionsFrom(flags: ParsedArgs['flags']): Partial<PdfOptions> {
     capitalizeBlocks: bool(flags, 'capitalize'),
     lineHeight: num(flags, 'line-height'),
     title: str(flags, 'title'),
-    // Real glyph widths, so the chord column can sit right next to the lyrics.
+    // Real glyph widths, so the chord column can sit right next to the lyrics
+    // and a verse can be measured against the height of a text column.
     measureText: measureRoboto(),
+    measureLineHeight: measureRobotoLineHeight(),
   };
 }
 

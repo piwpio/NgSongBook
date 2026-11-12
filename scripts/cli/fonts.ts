@@ -52,3 +52,23 @@ export function measureRoboto(): (text: string, fontSize: number, bold: boolean)
       .fontSize(fontSize)
       .widthOfString(text);
 }
+
+/**
+ * The natural height of one line of Roboto at a given size, before any
+ * `lineHeight` multiplier. The column layout needs it to work out how much of a
+ * column a verse will take.
+ */
+export function measureRobotoLineHeight(): (fontSize: number) => number {
+  const PDFDocument = require('@foliojs-fork/pdfkit') as new (options: object) => {
+    registerFont: (name: string, src: Buffer) => void;
+    font: (name: string) => {
+      fontSize: (size: number) => { currentLineHeight: (includeGap: boolean) => number };
+    };
+  };
+
+  const fonts = robotoFonts()['Roboto'];
+  const doc = new PDFDocument({ autoFirstPage: false });
+  doc.registerFont('normal', fonts.normal as Buffer);
+
+  return fontSize => doc.font('normal').fontSize(fontSize).currentLineHeight(true);
+}

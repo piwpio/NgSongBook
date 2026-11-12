@@ -12,6 +12,8 @@ Dwa tryby generowania:
 | numery stron | tak, przeliczane od nowa       | **nie** (kartki trafiają do segregatora w różnej kolejności) |
 | komenda      | `npm run pdf:book`             | `npm run pdf:print`                                          |
 
+Niezależnie od tego oba dokumenty mają **dwa układy strony** — patrz niżej.
+
 Wszystko kręci się wokół jednego rdzenia w [`src/songbook/`](src/songbook) — parser, model i
 budowanie dokumentu pdfmake nie zależą ani od Angulara, ani od Node'a, więc aplikacja w
 przeglądarce i CLI dają identyczny PDF.
@@ -138,6 +140,27 @@ Zbity zapis akordów jest rozbijany na pojedyncze akordy: `AaDeD` → `A a D e D
 `abDeGEGE` → `a b D e G E G E`. Sufiksy zostają przy swoim dźwięku (`Amaj7`, `Dsus4`,
 `F#`, `C/G`).
 
+### Układ strony
+
+|        | `--layout single` (domyślnie)                   | `--layout columns`                                   |
+| ------ | ----------------------------------------------- | ---------------------------------------------------- |
+| tekst  | jedna kolumna przez całą szerokość              | dwie kolumny                                         |
+| akordy | w kolumnie obok tekstu                          | nad linią tekstu                                     |
+| po co  | kiedy znasz piosenkę i patrzysz tylko na akordy | kiedy jej nie znasz i czytasz tekst razem z akordami |
+
+W układzie dwukolumnowym **zwrotka ani refren nigdy się nie rozrywa** — ani między
+kolumnami, ani między stronami. Bloki są rozdzielane ręcznie, bo pdfmake nie przelewa
+tekstu z kolumny do kolumny sam z siebie: generator mierzy wysokość każdej zwrotki
+w tym samym foncie, który idzie do PDF-a, i decyduje, gdzie ją położyć.
+
+Piosenka, która mieści się na jednej stronie, ma kolumny **wyrównane** — szuka
+najbardziej równego podziału, który nadal mieści się na kartce. Piosenka na kilka stron
+wypełnia kolejne strony do pełna, żeby zająć ich jak najmniej.
+
+`--columns N` zmienia liczbę kolumn (domyślnie 2). Akordy w tym układzie same przechodzą
+nad tekst, bo w wąskiej kolumnie nie ma miejsca na kolumnę akordów obok; `--chords right`
+nadal to wymusza, jeśli naprawdę chcesz.
+
 ### Notacja akordów
 
 Śpiewnik rozumie dwie i tłumaczy między nimi automatycznie:
@@ -187,6 +210,8 @@ npm run pdf:print -- --page-size A5 --bold --chords right
 
 | Opcja                                           | Znaczenie                                                 |
 | ----------------------------------------------- | --------------------------------------------------------- |
+| `--layout single\|columns`                      | jedna kolumna (domyślnie) czy dwie                        |
+| `--columns N`                                   | liczba kolumn dla `--layout columns` (domyślnie 2)        |
 | `--page-size A4\|A5`                            | format strony (A5 ma automatycznie większą czcionkę)      |
 | `--chords right\|above\|none`                   | kolumna po prawej (domyślnie) / nad tekstem / bez akordów |
 | `--no-split-chords`                             | drukuj akordy dosłownie (`AaDeD`)                         |

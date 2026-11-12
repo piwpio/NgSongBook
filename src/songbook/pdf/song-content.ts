@@ -2,7 +2,7 @@ import { Content, ContentStack } from 'pdfmake/interfaces';
 import { Song, SongBlock, SongLine } from '../model/song.model';
 import { ChordNotation } from '../parser/chord';
 import { formatChords } from '../parser/chord-tokenizer';
-import { PdfOptions, contentWidth } from './pdf-options';
+import { PdfOptions, contentHeight, contentWidth, lineHeightOf, textColumnWidth } from './pdf-options';
 
 export const SONG_STYLES = {
   songTitle: 'songTitle',
@@ -28,10 +28,199 @@ export interface SongContent {
 
 export function buildSongContent(song: Song, options: SongContentOptions): SongContent {
   const header = buildHeader(song, options);
-  const lyricsWidth = lyricsColumnWidth(song, options);
   const source = song.meta.notation;
+
+  if (options.layout === 'columns') {
+    const width = textColumnWidth(options);
+    const blocks = song.blocks.map(block => ({
+      node: buildBlock(block, options, width, source) as Content,
+      height: estimateBlockHeight(block, options, source, width),
+    }));
+    const pages = layOutColumns(blocks, options, estimateHeaderHeight(song, options), width);
+    return { content: [...header, ...pages], titleNode: header[0] };
+  }
+
+  const lyricsWidth = lyricsColumnWidth(song, options);
   const blocks = song.blocks.map(block => buildBlock(block, options, lyricsWidth, source));
   return { content: [...header, ...blocks], titleNode: header[0] };
+}
+
+/** How much of a column is left once the safety margin is taken off. */
+const COLUMN_FILL = 0.98;
+
+interface MeasuredBlock {
+  node: Content;
+  height: number;
+}
+
+/**
+ * Hands each verse to a column.
+ *
+ * pdfmake's `columns` is a fixed side-by-side layout - it does not pour text
+ * from one column into the next - so the blocks are dealt out here instead. A
+ * verse goes in whole or not at all, which is the point: it can never be torn
+ * between two columns or two pages. The only exception is a verse taller than a
+ * whole column, which has nowhere else to go.
+ */
+function layOutColumns(blocks: MeasuredBlock[], options: PdfOptions, headerHeight: number, columnWidth: number): Content[] {
+  const count = Math.max(1, options.columnCount);
+  const full = contentHeight(options);
+  // The header sits above the columns, so it eats into the first page only.
+  const limitFor = (pageIndex: number) => (pageIndex === 0 ? full - headerHeight : full) * COLUMN_FILL;
+
+  const pages = fill(blocks, count, limitFor);
+
+  // A song that fits on one page is balanced across its columns: filling the
+  // left one to the brim and leaving the right half empty is correct but looks
+  // lopsided. Over several pages the columns are filled to the top instead, so
+  // the song takes as few pages as it can.
+  //
+  // Balancing is only kept if it still fits on that one page. An even split can
+  // land just under a verse's height and push the leftovers onto a second page,
+  // which is a worse outcome than a lopsided but single page.
+  const laidOut = balanceIfItStillFits(blocks, count, pages, limitFor(0));
+
+  return laidOut.map((columns, index) => ({
+    columns: columns.map(stack => ({ width: columnWidth, stack })),
+    columnGap: options.textColumnGap,
+    ...(index > 0 ? { pageBreak: 'before' as const } : {}),
+  })) as Content[];
+}
+
+function emptyColumns(count: number): Content[][] {
+  return Array.from({ length: count }, () => [] as Content[]);
+}
+
+/** Deals the blocks into columns, starting a new page when the last one is full. */
+function fill(blocks: MeasuredBlock[], count: number, limitFor: (pageIndex: number) => number): Content[][][] {
+  const pages: Content[][][] = [];
+  let current = emptyColumns(count);
+  let column = 0;
+  let used = 0;
+
+  for (const block of blocks) {
+    if (current[column].length > 0 && used + block.height > limitFor(pages.length)) {
+      column += 1;
+      used = 0;
+      if (column >= count) {
+        pages.push(current);
+        current = emptyColumns(count);
+        column = 0;
+      }
+    }
+    current[column].push(block.node);
+    used += block.height;
+  }
+
+  pages.push(current);
+  return pages;
+}
+
+/**
+ * Spreads the blocks evenly over the columns - but only if that still leaves
+ * the song on one page.
+ */
+function balanceIfItStillFits(blocks: MeasuredBlock[], count: number, sequential: Content[][][], limit: number): Content[][][] {
+  if (sequential.length !== 1) {
+    return sequential;
+  }
+
+  // Start from a perfectly even share and let the columns grow until the song
+  // fits on one page again. The last step is the sequential layout itself, so
+  // the search always ends - at worst with what it started from.
+  const total = blocks.reduce((sum, block) => sum + block.height, 0);
+  const even = total / count;
+  const steps = 12;
+
+  for (let step = 0; step <= steps; step++) {
+    const target = even + ((limit - even) * step) / steps;
+    const balanced = fill(blocks, count, () => target);
+    if (balanced.length === 1) {
+      return balanced;
+    }
+  }
+
+  return sequential;
+}
+
+/**
+ * How tall a verse will be once set in a column of the given width. Uses the
+ * same text the renderer will use, so the guess cannot drift from the result.
+ */
+function estimateBlockHeight(block: SongBlock, options: PdfOptions, source: ChordNotation, columnWidth: number): number {
+  const indent = block.kind === 'chorus' ? options.chorusIndent : 0;
+  const width = Math.max(10, columnWidth - indent);
+  let height = options.blockGap;
+
+  block.lines.forEach((line, index) => {
+    const chordText = renderChords(line, options, source);
+
+    if (line.chordsOnly) {
+      height +=
+        wrappedLines(chordText, width, options.chordFontSize, true, options, CHORD_SPACING) *
+        lineHeightOf(options, options.chordFontSize, 1);
+      return;
+    }
+
+    if (options.chordLayout === 'above' && chordText) {
+      height +=
+        wrappedLines(chordText, width, options.chordFontSize, true, options, CHORD_SPACING) *
+        lineHeightOf(options, options.chordFontSize, 1);
+    }
+
+    const opening = index === 0 && options.capitalizeBlocks;
+    const lyrics = opening ? capitalizeFirst(line.lyrics) : line.lyrics;
+    height +=
+      wrappedLines(lyrics || ' ', width, options.lyricsFontSize, options.boldLyrics, options, 0) *
+      lineHeightOf(options, options.lyricsFontSize, options.lineHeight);
+  });
+
+  return height;
+}
+
+/** The chord style is letterspaced; the measurer does not know that. */
+const CHORD_SPACING = 0.6;
+
+function estimateHeaderHeight(song: Song, options: PdfOptions): number {
+  const width = contentWidth(options);
+  let height =
+    lineHeightOf(options, options.titleFontSize, 1.05) * wrappedLines(song.meta.title, width, options.titleFontSize, true, options, 0);
+  height += 2;
+
+  if (song.meta.author || song.meta.extra) {
+    height += lineHeightOf(options, options.lyricsFontSize - 2.5, 1);
+  }
+
+  // The rule under the header, with its margins.
+  height += 6 + 0.6 + 10;
+  return height;
+}
+
+/** How many lines the text takes once wrapped to the given width. */
+function wrappedLines(text: string, width: number, fontSize: number, bold: boolean, options: PdfOptions, spacingPerChar: number): number {
+  if (!text) {
+    return 0;
+  }
+
+  const measure = (value: string) =>
+    (options.measureText ? options.measureText(value, fontSize, bold) : value.length * fontSize * 0.5) + value.length * spacingPerChar;
+
+  if (measure(text) <= width) {
+    return 1;
+  }
+
+  let lines = 1;
+  let current = '';
+  for (const word of text.split(/\s+/)) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (measure(candidate) <= width) {
+      current = candidate;
+    } else {
+      lines += 1;
+      current = word;
+    }
+  }
+  return lines;
 }
 
 /**
