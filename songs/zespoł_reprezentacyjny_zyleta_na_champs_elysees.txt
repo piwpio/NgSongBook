@@ -6,22 +6,22 @@
 
 {ver}Z budowy se przez Paryż szłem|C E7
 Ciapaty tłum otaczał mnie|a C7
-Jak w "Bambusowie" czułem się|F C
-Na Szanselize|D7 G7
+Jak w bambusowie czułem się|F C
+Na Champs Elysees|D7 G7
 Ty Legii żeś nosiła dres|C E7
 Skumałem więc że z Polski jest|a C7
 Jedyny jasny obiekt ten|F C
-Na Szanselize|F G7 C
+Na Champs Elysees|F G7 C
 
-{ref}O Szanelize,|C E7 a C7
-o Szanselize!|F C D7 G7
+{ref}Aux Champs Elysees,|C E7 a C7
+Aux Champs Elysees!|F C D7 G7
 Czarno w noc, ciapato w dzień|C E7
 Kebab tak, bagietka nie|a C7
 I po francusku prawie nikt nie mówi tam dziś…|F C F G7 C
 
-{ver}Ty rzekłaś mi: Mam randewu
+{ver}Ty rzekłaś mi - mam rendez-vous
 Z szamanem, który kult voodoo
-I żemanża w Europie chce
+I jumanji’a w Europie chce
 Wprowadzić do szkół.
 Ma biznesplan i z Unii grant
 W dzień jara hasz, a nocą crack
@@ -30,7 +30,7 @@ Zwołuje na mszę
 
 {ref}
 
-{ver}Tam-tamów zew z Szanselize
+{ver}Tam-tamów zew z Champs Elysees
 Twój „Legii” dres rozczulał mnie
 Żandarm Ahmed ukłony słał
 Alejkum Salem!
@@ -45,7 +45,7 @@ Zwaliły go z nóg.
 Tam dumnie brzmi żylety śpiew
 Że „Wisła” chuj, ze „Widzew” żyd
 A pany to my!
-I wierzę że Szanselize
+I wierzę że Champs Elysees
 Usłyszy też żylety śpiew
 A „Legia” to ich PSG
 Rozpieprzy na pył
