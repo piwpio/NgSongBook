@@ -1,22 +1,22 @@
-{author}Zespół reprezentacyjny
+{author}Zespół Reprezentacyjny
 {title}Żyleta na Champs Elysees
 
-{chords}C E7 A7 C7
-{chords}F C F G7 C
+{chords}d G7 C a
+{chords}d G7 F G7 C
 
 {ver}Z budowy se przez Paryż szłem|C E7
-Ciapaty tłum otaczał mnie|A7 C7
+Ciapaty tłum otaczał mnie|a C7
 Jak w "Bambusowie" czułem się|F C
 Na Szanselize|D7 G7
 Ty Legii żeś nosiła dres|C E7
-Skumałem więc że z Polski jest|A7 C7
+Skumałem więc że z Polski jest|a C7
 Jedyny jasny obiekt ten|F C
 Na Szanselize|F G7 C
 
-{ref}O Szanelize,|C E7 A7 C7
+{ref}O Szanelize,|C E7 a C7
 o Szanselize!|F C D7 G7
 Czarno w noc, ciapato w dzień|C E7
-Kebab tak, bagietka nie|A7 C7
+Kebab tak, bagietka nie|a C7
 I po francusku prawie nikt nie mówi tam dziś…|F C F G7 C
 
 {ver}Ty rzekłaś mi: Mam randewu
