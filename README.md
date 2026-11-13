@@ -186,13 +186,36 @@ Zbity zapis akordów jest rozbijany na pojedyncze akordy: `AaDeD` → `A a D e D
 `abDeGEGE` → `a b D e G E G E`. Sufiksy zostają przy swoim dźwięku (`Amaj7`, `Dsus4`,
 `F#`, `C/G`).
 
+### Sekcje zespołów
+
+Zespół, który ma w śpiewniku co najmniej **6 piosenek**, dostaje własną sekcję: stronę
+z samą swoją nazwą na środku (mniejszą czcionką niż tytuł śpiewnika), a po niej swoje
+piosenki alfabetycznie. Reszta ląduje na końcu w grupie **Różne**, też alfabetycznie.
+Sekcje idą alfabetycznie po nazwie zespołu, `Różne` zawsze na końcu.
+
+Tak samo w całym śpiewniku (`pdf:book`) i w partiach do segregatora (`pdf:print`) —
+kartka w segregatorze trafia pod tę samą przekładkę, pod którą stoi w książce. Spis
+treści w całym śpiewniku jest pogrupowany tym samym podziałem.
+
+Nazwa z `{author}` jest przy grupowaniu **sprowadzana do wspólnej postaci**: bez
+wielkości liter i bez polskich znaków. „Zespół Reprezentacyjny" i „Zespol
+reprezentacyjny" to jeden zespół, więc literówka nie rozbija go na dwa. W druku
+pojawia się ta pisownia, której używa **większość** plików; jeśli pisownie się różnią,
+CLI to zgłasza:
+
+```
+! one artist spelled several ways: "Zespół Reprezentacyjny" x1, "Zespół reprezentacyjny" x1
+```
+
+Próg zmienia `--section-threshold N`, a `--section-threshold 0` wyłącza sekcje zupełnie.
+
 ### Układ strony
 
-|        | `--layout single` (domyślnie)                   | `--layout columns`                                   |
-| ------ | ----------------------------------------------- | ---------------------------------------------------- |
-| tekst  | jedna kolumna przez całą szerokość              | dwie kolumny                                         |
-| akordy | w kolumnie obok tekstu                          | nad linią tekstu                                     |
-| po co  | kiedy znasz piosenkę i patrzysz tylko na akordy | kiedy jej nie znasz i czytasz tekst razem z akordami |
+|        | `--layout columns` (domyślnie)                       | `--layout single`                               |
+| ------ | ---------------------------------------------------- | ----------------------------------------------- |
+| tekst  | dwie kolumny                                         | jedna kolumna przez całą szerokość              |
+| akordy | nad linią tekstu                                     | w kolumnie obok tekstu                          |
+| po co  | kiedy jej nie znasz i czytasz tekst razem z akordami | kiedy znasz piosenkę i patrzysz tylko na akordy |
 
 W układzie dwukolumnowym **zwrotka ani refren nigdy się nie rozrywa** — ani między
 kolumnami, ani między stronami. Bloki są rozdzielane ręcznie, bo pdfmake nie przelewa
@@ -277,10 +300,10 @@ npm run pdf:print -- --page-size A5 --bold --chords right
 
 | Opcja                                           | Znaczenie                                                 |
 | ----------------------------------------------- | --------------------------------------------------------- |
-| `--layout single\|columns`                      | jedna kolumna (domyślnie) czy dwie                        |
+| `--layout columns\|single`                      | dwie kolumny (domyślnie) czy jedna                        |
 | `--columns N`                                   | liczba kolumn dla `--layout columns` (domyślnie 2)        |
 | `--page-size A4\|A5`                            | format strony (A5 ma automatycznie większą czcionkę)      |
-| `--chords right\|above\|none`                   | kolumna po prawej (domyślnie) / nad tekstem / bez akordów |
+| `--chords above\|right\|none`                   | nad tekstem (domyślnie) / kolumna po prawej / bez akordów |
 | `--no-split-chords`                             | drukuj akordy dosłownie (`AaDeD`)                         |
 | `--notation pl\|en`                             | notacja, w której **drukować** akordy (domyślnie `pl`)    |
 | `--font-size` / `--chord-size` / `--title-size` | rozmiary czcionek                                         |
@@ -336,11 +359,11 @@ jak przypis, dedykacja:
 Zmienia ją `--dedication "..."`, zdejmuje `--no-dedication`. Okładka nie ma numeru strony,
 ale liczy się do numeracji, więc numery w spisie treści zgadzają się z tymi na stronach.
 
-Domyślnie akordy idą w kolumnie obok tekstu. CLI mierzy tekst w tym samym foncie,
+W układzie `--layout single` akordy idą w kolumnie obok tekstu. CLI mierzy tekst w tym samym foncie,
 który trafia do PDF-a (pdfkit + Roboto), i ustawia kolumnę tuż za najdłuższą linią
 **danej piosenki** — akordy są blisko słów, a mimo to tworzą równy pion. Gdy linia
 przekracza 78% szerokości kolumny, szerokość jest przycinana i najdłuższe linie się
-zawijają. `--chords above` daje wariant nad tekstem.
+zawijają. `--chords above` daje wariant nad tekstem — i to on jest domyślny w układzie dwukolumnowym.
 
 Bez pomiaru (czyli w przeglądarce) kolumna wypada na stałym ułamku szerokości strony —
 `lyricsColumnRatio`, domyślnie 0.5.

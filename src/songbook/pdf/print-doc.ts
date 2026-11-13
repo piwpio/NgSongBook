@@ -1,6 +1,7 @@
 import { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 import { Song } from '../model/song.model';
-import { CoverOptions, buildCover } from './cover';
+import { MISC_SECTION, groupSongs } from '../model/grouping';
+import { CoverOptions, buildCover, buildSectionPage } from './cover';
 import { buildSongContent, buildStyles } from './song-content';
 import { PdfOptions, resolvePdfOptions } from './pdf-options';
 
@@ -29,14 +30,26 @@ export function buildPrintDoc(songs: Song[], raw: PrintDocOptions = {}): TDocume
     content.push(...buildCover(options, raw));
   }
 
-  songs.forEach((song, index) => {
-    content.push(
-      ...buildSongContent(song, {
-        ...options,
-        pageBreak: index === 0 ? withCover : options.songPerPage,
-      }).content
-    );
-  });
+  // The batch is grouped the same way the songbook is, so a sheet filed under
+  // an artist's divider in the binder matches the book it came from.
+  const grouped = groupSongs(songs, options.sectionThreshold);
+  const parts: { heading: string | null; songs: Song[] }[] = [
+    ...grouped.sections.map(section => ({ heading: section.name, songs: section.songs })),
+    ...(grouped.misc.length > 0 ? [{ heading: grouped.sections.length > 0 ? MISC_SECTION : null, songs: grouped.misc }] : []),
+  ];
+
+  let placed = 0;
+  for (const part of parts) {
+    if (part.heading) {
+      content.push(...buildSectionPage(options, part.heading));
+    }
+
+    part.songs.forEach((song, index) => {
+      const pageBreak = part.heading ? index === 0 || options.songPerPage : placed === 0 ? withCover : options.songPerPage;
+      content.push(...buildSongContent(song, { ...options, pageBreak }).content);
+      placed += 1;
+    });
+  }
 
   return {
     pageSize: options.pageSize,

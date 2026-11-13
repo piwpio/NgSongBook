@@ -67,6 +67,17 @@ required, `{extra}` is not; `{chords}` is an instrumental passage; `{ref}`,
 
 Each of these was deliberate. Changing one is fine — doing it by accident is not.
 
+**An artist with enough songs gets a section.** `sectionThreshold` songs (6 by
+default, 0 turns it off) buys a divider page carrying just their name, then their
+songs by title; everyone else is gathered under `Różne` at the end. The book body and
+its table of contents run in the same order, so the page numbers climb as the reader
+turns pages. Print batches are grouped the same way, so a sheet is filed under the
+same divider it sits behind in the book. Grouping is by `normalizeAuthor`: case folded
+and accents stripped, including the `ł` that NFD does not decompose - a typo must not
+scatter a band across the book. The name printed is whichever spelling most of the
+files use, ties broken alphabetically so the output is stable; the CLI reports artists
+spelled more than one way, since that is a typo worth fixing at the source.
+
 **Chord notation is a property of the file, not of the run.** A songbook holds
 songs copied from all sorts of places, so each one declares with `{notation}` - or
 betrays by its chords - whether it is written Polish (`H`, `B` = B flat, minor in
@@ -91,6 +102,11 @@ next verse still carries the chords from before it.
 means a minor chord, so `a` turned into `A` would be a different chord. The block
 capitalisation applies to the first line that _has lyrics_, nothing else. There is
 a test guarding this.
+
+**Two columns with the chords above the words is the default layout.** `--layout
+single` is the opt-out: one column of lyrics across the page with the chords in a
+column beside them. The chord placement follows the layout unless `--chords` says
+otherwise, so a narrow column never gets a chord column squeezed in next to it.
 
 **The two-column layout deals the verses out by hand.** pdfmake's `columns` is a
 fixed side-by-side layout and does not pour text from one column into the next, so

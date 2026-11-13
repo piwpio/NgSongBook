@@ -21,6 +21,7 @@ import {
   serialiseHistory,
 } from '../../src/songbook';
 import { ChordNotation } from '../../src/songbook/parser/chord-tokenizer';
+import { normalizeAuthor } from '../../src/songbook/model/grouping';
 import { ParsedArgs, bool, list, num, parseArgs, str } from './args';
 import { measureRoboto, measureRobotoLineHeight, robotoFonts } from './fonts';
 import { HISTORY_FILE, SONGS_DIR, ensureDir, findProjectRoot, loadSongs, timestampSlug } from './workspace';
@@ -34,16 +35,22 @@ Songbook - PDF generator
 
 Common options:
   --page-size A4|A5           page format (default A4)
-  --layout single|columns     one column (default) or two columns of lyrics with
-                              the chords above them. A verse is never split
-                              between the columns or across a page.
+  --layout columns|single     two columns of lyrics with the chords above them
+                              (default), or one column with the chords beside
+                              it. A verse is never split between the columns or
+                              across a page.
   --columns N                 how many columns --layout columns uses (default 2)
+  --section-threshold N       how many songs an artist needs before they get a
+                              section of their own, opened by a page with just
+                              their name (default 6). 0 turns sections off.
   --no-spread-chords          run the chords together at the start of the line
                               instead of spacing them evenly along it
   --no-fit-lines              let long lines wrap instead of shrinking the song
                               so its longest line fits the column on one line
-  --min-font-scale N          how far --fit-lines may shrink the type (default 0.72)
-  --chords right|above|none   right hand column (default) / above the lyrics / no chords
+  --min-font-scale N          how far --fit-lines may shrink the type (default 0.8)
+  --chords above|right|none   above the lyrics (default in the two column layout)
+                              / right hand column (the default in --layout single)
+                              / no chords
   --no-split-chords           print chords exactly as written (AaDeD instead of A  a  D  e  D)
   --notation pl|en            notation to PRINT the chords in (default pl).
                               'pl' = H, B flat as B, minor in lower case: a, cis
@@ -107,6 +114,7 @@ function pdfOptionsFrom(flags: ParsedArgs['flags']): Partial<PdfOptions> {
     chordFontSize: num(flags, 'chord-size'),
     titleFontSize: num(flags, 'title-size'),
     boldLyrics: bool(flags, 'bold'),
+    sectionThreshold: num(flags, 'section-threshold'),
     spreadChords: bool(flags, 'spread-chords'),
     fitLines: bool(flags, 'fit-lines'),
     minFontScale: num(flags, 'min-font-scale'),
@@ -140,6 +148,32 @@ function readHistory(historyPath: string): PrintHistory {
     return emptyHistory();
   }
   return parseHistory(fs.readFileSync(historyPath, 'utf8'));
+}
+
+/**
+ * Artists whose files spell their name more than one way. They are grouped
+ * together regardless, but a typo is worth hearing about - the songbook prints
+ * whichever spelling the files use most.
+ */
+function reportSpelling(songs: Song[]): void {
+  const spellings = new Map<string, Map<string, number>>();
+  for (const song of songs) {
+    const name = song.meta.author?.trim();
+    if (!name) {
+      continue;
+    }
+    const key = normalizeAuthor(name);
+    const seen = spellings.get(key) ?? new Map<string, number>();
+    seen.set(name, (seen.get(name) ?? 0) + 1);
+    spellings.set(key, seen);
+  }
+
+  for (const seen of spellings.values()) {
+    if (seen.size > 1) {
+      const listed = [...seen].map(([name, count]) => `"${name}" x${count}`).join(', ');
+      console.warn(`  ! one artist spelled several ways: ${listed}`);
+    }
+  }
 }
 
 function reportWarnings(songs: Song[]): void {
@@ -299,6 +333,8 @@ async function main(): Promise<void> {
   if (skipped.length > 0) {
     console.error('');
   }
+
+  reportSpelling(songs);
 
   const ctx: Context = { root, songsDir, historyPath, outputDir, songs };
 

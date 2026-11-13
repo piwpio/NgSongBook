@@ -1,8 +1,9 @@
 import { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 import { Song } from '../model/song.model';
 import { buildSongContent, buildStyles } from './song-content';
+import { MISC_SECTION, groupSongs } from '../model/grouping';
 import { PdfOptions, contentWidth, resolvePdfOptions } from './pdf-options';
-import { CoverOptions, buildCover } from './cover';
+import { CoverOptions, buildCover, buildSectionPage } from './cover';
 
 export interface SongbookDocOptions extends Partial<PdfOptions>, CoverOptions {
   /** Cover page with the songbook title. Default: true. */
@@ -34,16 +35,37 @@ export function buildSongbookDoc(songs: Song[], raw: SongbookDocOptions = {}): T
 
   const firstSongBreaksPage = withCover || withToc;
   const songContent: Content[] = [];
-  const tocEntries: TocEntry[] = [];
+  const tocGroups: TocGroup[] = [];
+  let placed = 0;
 
-  songs.forEach((song, index) => {
-    const built = buildSongContent(song, {
-      ...options,
-      pageBreak: index === 0 ? firstSongBreaksPage : options.songPerPage,
-    });
-    songContent.push(...built.content);
-    tocEntries.push({ title: song.meta.title, destination: song.id, node: built.titleNode });
-  });
+  // Each artist with enough songs opens their own section; everyone else is
+  // gathered at the end. The book and its contents run in the same order, so
+  // the page numbers climb as the reader turns pages.
+  const grouped = groupSongs(songs, options.sectionThreshold);
+  const parts: { heading: string | null; songs: Song[] }[] = [
+    ...grouped.sections.map(section => ({ heading: section.name, songs: section.songs })),
+    ...(grouped.misc.length > 0 ? [{ heading: grouped.sections.length > 0 ? MISC_SECTION : null, songs: grouped.misc }] : []),
+  ];
+
+  for (const part of parts) {
+    if (part.heading && grouped.sections.length > 0) {
+      songContent.push(...buildSectionPage(options, part.heading));
+    }
+
+    const entries: TocEntry[] = [];
+    for (const song of part.songs) {
+      // After a section page the first song starts a new page too, so the
+      // divider stands alone with nothing but the artist's name on it.
+      const first = entries.length === 0;
+      const pageBreak = part.heading ? first || options.songPerPage : placed === 0 ? firstSongBreaksPage : options.songPerPage;
+
+      const built = buildSongContent(song, { ...options, pageBreak });
+      songContent.push(...built.content);
+      entries.push({ title: song.meta.title, destination: song.id, node: built.titleNode });
+      placed += 1;
+    }
+    tocGroups.push({ heading: part.heading, entries });
+  }
 
   if (withToc) {
     content.push({
@@ -51,7 +73,7 @@ export function buildSongbookDoc(songs: Song[], raw: SongbookDocOptions = {}): T
       style: 'tocTitle',
       ...(withCover ? { pageBreak: 'before' as const } : {}),
     });
-    content.push(buildToc(tocEntries, options));
+    content.push(buildToc(tocGroups, options));
   }
 
   content.push(...songContent);
@@ -95,7 +117,14 @@ interface TocEntry {
  * title node through `_tocItemRef` - the very hook the built-in TOC uses - so
  * the page numbers are still filled in after the whole document is laid out.
  */
-function buildToc(entries: TocEntry[], options: PdfOptions): Content {
+interface TocGroup {
+  /** The artist, or `Różne`; null when the book has no sections at all. */
+  heading: string | null;
+  entries: TocEntry[];
+}
+
+function buildToc(groups: TocGroup[], options: PdfOptions): Content {
+  const entries = groups.flatMap(group => group.entries);
   // pdfmake fills the page number into the FIRST line of the cell only, so the
   // '00000' placeholder must never wrap - a wrapped one leaves '00' behind on a
   // second line. The column is sized for the widest page number this book can
@@ -107,8 +136,8 @@ function buildToc(entries: TocEntry[], options: PdfOptions): Content {
   const numberWidth = measure('0'.repeat(digits));
   const available = contentWidth(options) - numberWidth;
 
-  return {
-    stack: entries.map(entry => ({
+  const row = (entry: TocEntry): Content =>
+    ({
       columns: [
         {
           // Title and leader are ONE text node, so the link annotation covers
@@ -130,7 +159,10 @@ function buildToc(entries: TocEntry[], options: PdfOptions): Content {
         },
       ],
       columnGap: 0,
-    })),
+    }) as unknown as Content;
+
+  return {
+    stack: groups.flatMap(group => [...(group.heading ? [{ text: group.heading, style: 'tocSection' }] : []), ...group.entries.map(row)]),
   } as unknown as Content;
 }
 

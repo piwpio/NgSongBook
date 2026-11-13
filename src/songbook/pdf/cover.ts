@@ -51,3 +51,26 @@ export function buildCover(options: PdfOptions, raw: CoverOptions = {}): Content
 
   return content;
 }
+
+/**
+ * The page that opens an artist's section: their name alone, centred, set
+ * smaller than the songbook's own title so the two never read as equals.
+ */
+export function buildSectionPage(options: PdfOptions, name: string): Content[] {
+  const page = PAGE_POINTS[options.pageSize];
+  const [left, , right] = options.margins;
+  const size = options.titleFontSize + 6;
+
+  return [
+    { text: '', margin: [0, 0, 0, 0], pageBreak: 'before' },
+    {
+      absolutePosition: { x: left, y: page.height / 2 - size * 0.72 },
+      columns: [
+        {
+          width: page.width - left - right,
+          stack: [{ text: name, style: 'sectionTitle' }],
+        },
+      ],
+    } as unknown as Content,
+  ];
+}

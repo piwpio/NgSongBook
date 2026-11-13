@@ -15,8 +15,8 @@ export type PageSize = 'A4' | 'A5';
 export type ChordLayout = 'above' | 'right' | 'none';
 
 /**
- * `single` - one column of lyrics down the page.
- * `columns` - the song set in two columns, chords above the words. Verses and
+ * `columns` (the default) - the song set in two columns, chords above the words.
+ * `single` - one column of lyrics down the page, chords beside them. Verses and
  *             choruses are distributed by hand so none is ever torn between
  *             the columns: pdfmake's `columns` is a fixed side-by-side layout
  *             and does not flow text from one into the next by itself.
@@ -97,13 +97,18 @@ export interface PdfOptions {
   chorusIndent: number;
   /** Start every song on a fresh page. */
   songPerPage: boolean;
+  /**
+   * How many songs an artist needs before they get a section of their own,
+   * opened by a page carrying just their name. 0 turns sections off.
+   */
+  sectionThreshold: number;
   title: string;
   subtitle?: string;
 }
 
 const BASE = {
   pageSize: 'A4' as PageSize,
-  layout: 'single' as PageLayout,
+  layout: 'columns' as PageLayout,
   columnCount: 2,
   chordLayout: 'right' as ChordLayout,
   splitChords: true,
@@ -115,6 +120,7 @@ const BASE = {
   fitLines: true,
   minFontScale: 0.8,
   songPerPage: true,
+  sectionThreshold: 6,
   title: 'Śpiewnik Złotego',
 };
 

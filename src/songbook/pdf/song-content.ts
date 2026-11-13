@@ -607,6 +607,13 @@ export function buildStyles(options: PdfOptions): Record<string, Record<string, 
     tocEntry: { fontSize: options.lyricsFontSize, lineHeight: 1.45 },
     tocNumber: { fontSize: options.lyricsFontSize, lineHeight: 1.45 },
     coverTitle: { fontSize: options.titleFontSize + 14, bold: true, alignment: 'center' },
+    sectionTitle: { fontSize: options.titleFontSize + 6, bold: true, alignment: 'center' },
+    tocSection: {
+      fontSize: options.lyricsFontSize + 1,
+      bold: true,
+      characterSpacing: 0.6,
+      margin: [0, 14, 0, 4],
+    },
     coverSubtitle: { fontSize: options.lyricsFontSize + 1, color: '#555555', alignment: 'center' },
     coverDedication: {
       fontSize: options.lyricsFontSize + 0.5,

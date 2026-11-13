@@ -61,8 +61,13 @@ function songOfVerses(count: number) {
 
 describe('two column layout', () => {
   it('leaves the single column layout alone', () => {
-    const content = buildSongContent(songOfVerses(3), resolvePdfOptions()).content;
+    const content = buildSongContent(songOfVerses(3), resolvePdfOptions({ layout: 'single' })).content;
     expect(columnNodes(content).length).toBe(0);
+  });
+
+  it('sets a song in two columns by default', () => {
+    const content = buildSongContent(songOfVerses(6), resolvePdfOptions()).content;
+    expect(columnNodes(content).length).toBe(1);
   });
 
   it('puts the chords above the words, since a chord column has no room', () => {
