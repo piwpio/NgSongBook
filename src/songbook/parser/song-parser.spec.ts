@@ -141,16 +141,29 @@ describe('parseSong', () => {
       expect(parsed.errors).toEqual(['{ref2} is used before it is written out.']);
     });
 
-    it('rejects a chorus written out twice under the same number', () => {
-      const parsed = parseSong('{title}T\n{author}A\n\n{ref1}jeden|C\n\n{ref1}znowu|G', 'x.txt');
-      expect(parsed.valid).toBe(false);
-      expect(parsed.errors).toEqual(['{ref1} is written out twice - a chorus may only be written out once.']);
+    it('lends the chords on to a second chorus of the same number', () => {
+      const parsed = parseSong('{title}T\n{author}A\n\n{ref1}jeden|C\n\n{ref1}znowu', 'x.txt');
+      expect(parsed.valid).toBe(true);
+      expect(parsed.blocks.map(b => b.lines[0].lyrics)).toEqual(['jeden', 'znowu']);
+      expect(parsed.blocks[1].lines[0].rawChords).toEqual('C');
     });
 
-    it('rejects the unnumbered chorus written out twice as well', () => {
-      const parsed = parseSong('{title}T\n{author}A\n\n{ref}jeden|C\n\n{ref}znowu|G', 'x.txt');
-      expect(parsed.valid).toBe(false);
-      expect(parsed.errors[0]).toContain('{ref} is written out twice');
+    it('lends them on under the unnumbered {ref} too', () => {
+      const parsed = parseSong('{title}T\n{author}A\n\n{ref}jeden|C\n\n{ref}znowu', 'x.txt');
+      expect(parsed.valid).toBe(true);
+      expect(parsed.blocks[1].lines[0].rawChords).toEqual('C');
+    });
+
+    it('lets a second chorus keep chords of its own', () => {
+      const parsed = parseSong('{title}T\n{author}A\n\n{ref1}jeden|C\n\n{ref1}znowu|G', 'x.txt');
+      expect(parsed.valid).toBe(true);
+      expect(parsed.blocks[1].lines[0].rawChords).toEqual('G');
+    });
+
+    it('brings back the first text under a number, not the last', () => {
+      const parsed = parseSong('{title}T\n{author}A\n\n{ref1}jeden|C\n\n{ref1}znowu\n\n{ref1}', 'x.txt');
+      expect(parsed.blocks[2].isRepeat).toBe(true);
+      expect(parsed.blocks[2].lines[0].lyrics).toEqual('jeden');
     });
 
     it('accepts the bracket spelling, and says it once however often it appears', () => {
@@ -413,6 +426,31 @@ describe('{ver} - a verse whose chords repeat', () => {
     const parsed = parseSong('{title}T\n{author}A\n\n{ver2}\n\nlinia|C', 'x.txt');
     expect(parsed.valid).toBe(false);
     expect(parsed.errors).toEqual(['{ver2} is used before it is written out.']);
+  });
+
+  it('warns about a number with nothing to borrow, whichever tag it is on', () => {
+    const verse = parseSong('{title}T\n{author}A\n\nlinia|C\n\n{ver3}bez swoich akordow', 'x.txt');
+    expect(verse.warnings).toContain('{ver3} has no chords of its own and no verse of that number to borrow from.');
+
+    const chorus = parseSong('{title}T\n{author}A\n\nlinia|C\n\n{ref3}bez swoich akordow', 'x.txt');
+    expect(chorus.warnings).toContain('{ref3} has no chords of its own and no chorus of that number to borrow from.');
+  });
+
+  it('says nothing about a bare {ver} or {ref} living off the chords carried in', () => {
+    const parsed = parseSong('{title}T\n{author}A\n\n{ver}linia|C\n\n{ref}refren\n\n{ver}dalej', 'x.txt');
+    expect(parsed.warnings).toEqual([]);
+    expect(parsed.blocks.map(b => b.lines[0].rawChords)).toEqual(['C', 'C', 'C']);
+  });
+
+  it('keeps {ref1} and {ver1} apart - one number, two tags, two patterns', () => {
+    const parsed = parseSong('{title}T\n{author}A\n\n{ver1}zwrotka|C\n\n{ref1}refren|G\n\n{ver1}znowu\n\n{ref1}znowu', 'x.txt');
+    expect(parsed.valid).toBe(true);
+    expect(parsed.blocks.map(b => b.lines[0].rawChords)).toEqual(['C', 'G', 'C', 'G']);
+  });
+
+  it('keeps a borrowing chorus a chorus, so it still gets the indent', () => {
+    const parsed = parseSong('{title}T\n{author}A\n\n{ref}pierwszy|C\n\n{ref}drugi', 'x.txt');
+    expect(parsed.blocks.map(b => b.kind)).toEqual(['chorus', 'chorus']);
   });
 
   it('does not mistake {ver1} in the header for a meta key', () => {

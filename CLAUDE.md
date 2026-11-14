@@ -61,7 +61,9 @@ output/                  generated PDFs (gitignored)
 
 See `README.md` for the full description. In short: `{title}` and `{author}` are
 required, `{extra}` is not; `{chords}` is an instrumental passage; `{ref}`,
-`{ref1}`, `{ref5}` are choruses; `{ver1}` is a verse whose chords later verses borrow; chords follow `|` at the end of a lyrics line.
+`{ref1}`, `{ref5}` are choruses; a numbered tag lends its chords to later blocks with
+the same tag, so `{ver1}` and `{ref1}` both work that way; chords follow `|` at the
+end of a lyrics line.
 
 ## Decisions worth not relitigating
 
@@ -182,23 +184,32 @@ PDF standard-14 fonts have no Polish diacritics.
 
 **Errors vs warnings.** Something that would silently drop content from the print
 is an error and keeps the song out of the PDF: missing `{title}`/`{author}`, no
-lyrics, a `{ref}` recalled before it was written out, the same chorus number
-written out twice. Everything else is a warning, de-duplicated so one mistake
-repeated five times is said once.
+lyrics, a `{ref}` or `{ver}` recalled before it was written out. Everything else is
+a warning, de-duplicated so one mistake repeated five times is said once.
 
-**`{ver}` lends a verse's chords to later verses.** `{ver1}` written out with lyrics
-and chords becomes a pattern; a later `{ver1}` with new words takes the chords from it
-line by line, and `{ver1}` alone prints the whole verse again. A line with its own `|`
-always wins over the pattern, a bare `|` included. A longer verse makes the pattern
-repeat from the start, with a warning, since that is usually a typo. Like a chorus
-repeat, borrowing does not touch the running chords. `{ver}` is a pattern of its own,
-not an alias for `{ver1}`; a verse tagged with a number that has nothing stored and no
-chords of its own gets a warning, since that is a mistyped number. This is what `{ref}` does NOT do:
-a chorus written out twice is an error, because two texts under one number means one
-would never be printed, while two texts under one verse number is the entire point.
+**A chorus is a verse with an indent.** `{ref}` and `{ver}` run through exactly the
+same code and differ in one thing only: `song-content` indents a chorus. Everything
+else - writing out, lending chords, recalling - is shared, and it should stay that
+way. A song that sings eight different choruses to one tune is ordinary, so two texts
+under one number is no more an error for `{ref}` than it is for `{ver}`.
 
-**`{ref}` is a chorus of its own, not an alias for `{ref1}`.** Aliasing them made
-mixing the two forms silently drop a text.
+**A tag lends its block's chords to later blocks with the same tag.** `{ver1}` (or
+`{ref1}`) written out with lyrics and chords becomes a pattern; a later `{ver1}` with
+new words takes the chords from it line by line, and `{ver1}` alone prints that whole
+block again. The FIRST block under a number is what the tag stands for - later ones
+borrow from it and never replace it, so a bare marker always brings back the same
+text. A line with its own `|` always wins over the pattern, a bare `|` included. A
+longer block makes the pattern repeat from the start, with a warning, since that is
+usually a typo. Like a repeat, borrowing does not touch the running chords.
+
+**A NUMBERED tag with nothing to borrow and no chords of its own gets a warning**,
+since that is a mistyped number. A bare `{ver}` or `{ref}` does not: there is no
+number to mistype, and living off the chords carried in from the line above is how
+most files are written.
+
+**`{ref}` is a chorus of its own, not an alias for `{ref1}`**, and `{ref1}` is not
+`{ver1}` - each tag keeps its own numbers. Aliasing the first pair made mixing the two
+forms silently drop a text.
 
 **`tsconfig.spec.json` must not override `module` or `moduleResolution`.** ts-jest
 forces CommonJS output itself, while Angular needs `bundler` resolution to find its

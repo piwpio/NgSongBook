@@ -175,6 +175,11 @@ function blockLabel(kind: SongBlockKind, key: string): string {
   return `{${tag}${key}}`;
 }
 
+/** The number a block was tagged with, whichever kind of block it is. */
+function patternKeyOf(block: SongBlock): string | undefined {
+  return block.kind === 'chorus' ? block.chorusKey : block.verseKey;
+}
+
 function matchBlockMarker(line: string): BlockMarker | null {
   const forms: [RegExp, SongBlockKind, TagSyntax][] = [
     [SONG_FORMAT.chorusMarker, 'chorus', 'braces'],
@@ -209,37 +214,43 @@ function noteSyntax(syntax: TagSyntax, warnings: string[]): void {
 function parseBlocks(lines: string[], notation: ChordNotation, warnings: string[], errors: string[]): SongBlock[] {
   const blocks: SongBlock[] = [];
   let current: SongBlock | null = null;
-  /** Every chorus written out so far, by number, so `{ref2}` can come back. */
-  const choruses = new Map<string, SongBlock>();
-  /** Every tagged verse written out so far - the chord patterns to borrow. */
-  const verses = new Map<string, SongBlock>();
+  /**
+   * Every tagged block written out so far, by number - the chord patterns a
+   * later block of the same tag borrows, and what a bare marker prints again.
+   * Choruses and verses are kept apart so `{ref1}` and `{ver1}` are two things.
+   */
+  const written: Record<SongBlockKind, Map<string, SongBlock>> = { chorus: new Map(), verse: new Map() };
   /** Chords carry over line after line, and across blocks, until replaced. */
   let lastChords = '';
-  /** The verse the open block is borrowing its chords from, if any. */
+  /** The block the open block is borrowing its chords from, if any. */
   let pattern: SongBlock | null = null;
   let patternAt = 0;
 
   const closeBlock = () => {
-    if (current && current.lines.length > 0) {
-      blocks.push(current);
-      if (current.kind === 'chorus' && !current.isRepeat && current.chorusKey !== undefined) {
-        choruses.set(current.chorusKey, current);
-      }
-      if (current.kind === 'verse' && !current.isRepeat && current.verseKey !== undefined) {
-        // Tagged, but with nothing to borrow and nothing of its own - almost
-        // always a number that does not match the verse it was meant to copy.
-        if (!pattern && !current.lines.some(line => line.chordsExplicit)) {
-          warnings.push(`${blockLabel('verse', current.verseKey)} has no chords of its own and no verse of that number to borrow from.`);
+    const block = current;
+    const key = block ? patternKeyOf(block) : undefined;
+    if (block && block.lines.length > 0) {
+      blocks.push(block);
+      if (!block.isRepeat && key !== undefined) {
+        const label = blockLabel(block.kind, key);
+        const named = block.kind === 'chorus' ? 'chorus' : 'verse';
+        // Numbered, but with nothing to borrow and nothing of its own - almost
+        // always a number that does not match the block it was meant to copy.
+        // Only numbers can be mistyped: a bare `{ver}` or `{ref}` is just how
+        // a block is opened, and it may well live off the chords carried in.
+        if (key !== '' && !pattern && !block.lines.some(line => line.chordsExplicit)) {
+          warnings.push(`${label} has no chords of its own and no ${named} of that number to borrow from.`);
         }
-        if (pattern && pattern.lines.length !== current.lines.length) {
+        if (pattern && pattern.lines.length !== block.lines.length) {
           warnings.push(
-            `${blockLabel('verse', current.verseKey)} has ${current.lines.length} lines but its chords were written for ${
-              pattern.lines.length
-            } - the pattern repeats to fill it.`
+            `${label} has ${block.lines.length} lines but its chords were written for ${pattern.lines.length} - the pattern repeats to fill it.`
           );
         }
-        if (!verses.has(current.verseKey)) {
-          verses.set(current.verseKey, current);
+        // The first block under a number is the one its tag stands for: the
+        // chords later ones borrow, and the text a bare marker prints again.
+        const store = written[block.kind];
+        if (!store.has(key)) {
+          store.set(key, block);
         }
       }
     }
@@ -262,7 +273,7 @@ function parseBlocks(lines: string[], notation: ChordNotation, warnings: string[
     if (marker && marker.rest === '') {
       closeBlock();
       noteSyntax(marker.syntax, warnings);
-      const defined = (marker.kind === 'chorus' ? choruses : verses).get(marker.key);
+      const defined = written[marker.kind].get(marker.key);
       if (defined) {
         blocks.push(repeatOf(defined));
       } else {
@@ -316,20 +327,16 @@ function parseBlocks(lines: string[], notation: ChordNotation, warnings: string[
         noteSyntax(opening.syntax, warnings);
         lyrics = opening.rest;
 
-        if (opening.kind === 'chorus') {
-          if (choruses.has(opening.key)) {
-            // A chorus is written out once and then recalled; two texts under
-            // one number means one would silently never be printed.
-            errors.push(`${blockLabel('chorus', opening.key)} is written out twice - a chorus may only be written out once.`);
-          }
-          current = { kind: 'chorus', chorusKey: opening.key, lines: [] };
-        } else {
-          // The first `{ver1}` writes the pattern down; every later one borrows
-          // it for new words. That is the point of tagging a verse at all.
-          pattern = verses.get(opening.key) ?? null;
-          patternAt = 0;
-          current = { kind: 'verse', verseKey: opening.key, lines: [] };
-        }
+        // The first block under a number writes the pattern down; every later
+        // one borrows it for new words. That is the point of tagging at all,
+        // and a chorus works exactly like a verse here - a song that sings the
+        // same tune to eight different choruses is written, not repeated.
+        pattern = written[opening.kind].get(opening.key) ?? null;
+        patternAt = 0;
+        current =
+          opening.kind === 'chorus'
+            ? { kind: 'chorus', chorusKey: opening.key, lines: [] }
+            : { kind: 'verse', verseKey: opening.key, lines: [] };
       } else {
         current = { kind: 'verse', lines: [] };
       }

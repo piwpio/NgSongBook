@@ -88,10 +88,27 @@ akordem. Wyłącza to `--no-capitalize`.
 
 **Refren** — blok zaczynający się od `{ref}`:
 
-- `{ref} tekst refrenu` — tu refren jest zapisany. Marker nie trafia do druku,
-  blok dostaje wcięcie.
+- `{ref} tekst refrenu` **pierwszy raz** — tu refren jest zapisany razem z akordami.
+  Marker nie trafia do druku, blok dostaje wcięcie. To jest wzór.
+- `{ref} inny tekst` **kolejny raz** — nowy refren bierze akordy ze wzoru, linia po
+  linii. Nie przepisujesz ich.
 - samo `{ref}` w osobnej linii — w tym miejscu refren jest powtarzany w całości,
-  razem z akordami. Nie trzeba go przepisywać.
+  razem z tekstem i akordami. Nie trzeba go przepisywać.
+
+Ten drugi punkt jest po to, żeby zapisać piosenkę, która do jednej melodii śpiewa
+osiem różnych refrenów:
+
+```
+{ref}Ty szmato podła ty|A Cis7
+Ty mój losie zły|D E7 A
+
+zwrotka
+
+{ref}Ty zdziro podła ty
+Ty mój losie zły
+```
+
+Drugi refren dostaje w druku `A Cis7` i `D E7 A`, choć w pliku ich nie ma.
 
 Jeśli piosenka ma **więcej niż jeden refren**, numerujesz je: `{ref1}`, `{ref2}`, `{ref5}` —
 numery nie muszą iść po kolei, liczy się tylko to, że dany numer oznacza zawsze ten sam
@@ -115,11 +132,12 @@ użyjesz obu, parser to zgłosi zamiast po cichu je sklejać.
 
 Walidacja refrenów:
 
-| sytuacja                                  | reakcja                                   |
-| ----------------------------------------- | ----------------------------------------- |
-| przywołanie numeru, którego nie zapisałeś | **błąd** — piosenka nie trafia do PDF-a   |
-| ten sam numer zapisany dwa razy           | **błąd** — refren wolno zapisać tylko raz |
-| `{ref007}` i `{ref7}`                     | ten sam refren                            |
+| sytuacja                                  | reakcja                                         |
+| ----------------------------------------- | ----------------------------------------------- |
+| przywołanie numeru, którego nie zapisałeś | **błąd** — piosenka nie trafia do PDF-a         |
+| ten sam numer zapisany dwa razy           | drugi tekst bierze akordy z pierwszego          |
+| samo `{ref1}` po kilku zapisach           | wraca **pierwszy** tekst — ten spod tego numeru |
+| `{ref007}` i `{ref7}`                     | ten sam refren                                  |
 
 Akordy powtórzonego refrenu nie wpływają na to, co dziedziczą kolejne zwrotki —
 po powtórce obowiązują nadal akordy sprzed refrenu.
@@ -129,8 +147,8 @@ po powtórce obowiązują nadal akordy sprzed refrenu.
 Klamry są formą właściwą. Refren zapisany słowem (`ref.`, `refren`, `chorus`) też
 jeszcze działa, z osobnym ostrzeżeniem.
 
-**Zwrotki grane tak samo** — `{ver}`, `{ver1}`, `{ver2}`, … . Działa jak `{ref}`, tylko
-bez wcięcia, i dochodzi jedna możliwość więcej:
+**Zwrotki grane tak samo** — `{ver}`, `{ver1}`, `{ver2}`, … . Działa dokładnie jak
+`{ref}`; jedyna różnica między refrenem a zwrotką to **wcięcie w druku**:
 
 - `{ver1} tekst zwrotki` **pierwszy raz** — tu zapisujesz zwrotkę razem z akordami.
   To jest wzór.
@@ -151,10 +169,12 @@ Bo ojciec miał brzydkiego.
 ```
 
 `{ver}` bez numeru to osobny wzór, nie alias `{ver1}` — tak samo jak przy refrenach.
+Numery `{ref}` i `{ver}` też się nie mieszają: `{ref1}` i `{ver1}` to dwa różne wzory.
 Jeśli piosenka ma tylko jeden powtarzalny przebieg, wystarczy samo `{ver}`; numery są
-po to, żeby rozróżnić kilka różnych. Gdy oznaczysz zwrotkę numerem, pod którym nic nie
-zapisałeś, i nie ma ona własnych akordów, parser o tym ostrzeże — to zwykle pomyłka
-w numerze.
+po to, żeby rozróżnić kilka różnych. Gdy oznaczysz blok **numerem**, pod którym nic nie
+zapisałeś, i nie ma on własnych akordów, parser o tym ostrzeże — to zwykle pomyłka
+w numerze. Samo `{ver}` czy `{ref}`, które żyje z akordów przeniesionych z linii wyżej,
+jest w porządku i nie wywołuje ostrzeżenia.
 
 Linia z własnym `|` zawsze wygrywa ze wzorem — także samo `|`, jeśli akurat ta linia ma
 być bez akordów. Jeśli nowa zwrotka ma **więcej linii** niż wzór, wzór zapętla się od
